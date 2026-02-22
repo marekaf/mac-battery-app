@@ -80,7 +80,8 @@ class StatusBarController {
             attributed.append(NSAttributedString(attachment: attachment))
         }
 
-        let color: NSColor = device.batteryLevel <= 10 ? .systemRed : .headerTextColor
+        let threshold = settingsStore?.lowBatteryThreshold ?? 10
+        let color: NSColor = device.batteryLevel <= threshold ? .systemRed : .headerTextColor
         let text = " \(device.batteryLevel)%"
         let textAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular),
@@ -89,7 +90,7 @@ class StatusBarController {
         ]
         attributed.append(NSAttributedString(string: text, attributes: textAttrs))
 
-        if device.batteryLevel <= 10 {
+        if device.batteryLevel <= threshold {
             button.image?.isTemplate = false
             if let symbolImage = NSImage(systemSymbolName: device.deviceType.sfSymbolName, accessibilityDescription: a11yDescription) {
                 let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
@@ -134,6 +135,20 @@ class StatusBarController {
             toggleItem.state = (settingsStore?.isHidden(device.id) == true) ? .off : .on
             menu.addItem(toggleItem)
         }
+
+        menu.addItem(NSMenuItem.separator())
+
+        let thresholdItem = NSMenuItem(title: "Low Battery Alert", action: nil, keyEquivalent: "")
+        let thresholdMenu = NSMenu()
+        let currentThreshold = settingsStore?.lowBatteryThreshold ?? 10
+        for pct in [5, 10, 15, 20, 25] {
+            let item = NSMenuItem(title: "\(pct)%", action: #selector(AppDelegate.setLowBatteryThreshold(_:)), keyEquivalent: "")
+            item.tag = pct
+            item.state = (pct == currentThreshold) ? .on : .off
+            thresholdMenu.addItem(item)
+        }
+        thresholdItem.submenu = thresholdMenu
+        menu.addItem(thresholdItem)
 
         menu.addItem(NSMenuItem.separator())
 

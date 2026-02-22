@@ -13,14 +13,24 @@ mkdir -p "${MACOS_DIR}" "${RESOURCES_DIR}"
 
 SOURCES=$(find Sources -name '*.swift' -type f)
 echo "Compiling $(echo "$SOURCES" | wc -l | tr -d ' ') Swift files..."
+
+FRAMEWORKS="-framework AppKit -framework IOKit -framework CoreBluetooth -framework ServiceManagement -framework UserNotifications"
+
 swiftc $SOURCES \
     -target arm64-apple-macos13.0 \
     -O \
-    -framework AppKit \
-    -framework IOKit \
-    -framework CoreBluetooth \
-    -framework ServiceManagement \
-    -o "${MACOS_DIR}/${APP_NAME}"
+    $FRAMEWORKS \
+    -o "${MACOS_DIR}/${APP_NAME}_arm64"
+
+swiftc $SOURCES \
+    -target x86_64-apple-macos13.0 \
+    -O \
+    $FRAMEWORKS \
+    -o "${MACOS_DIR}/${APP_NAME}_x86_64"
+
+lipo -create "${MACOS_DIR}/${APP_NAME}_arm64" "${MACOS_DIR}/${APP_NAME}_x86_64" \
+    -output "${MACOS_DIR}/${APP_NAME}"
+rm "${MACOS_DIR}/${APP_NAME}_arm64" "${MACOS_DIR}/${APP_NAME}_x86_64"
 
 cp Info.plist "${CONTENTS_DIR}/Info.plist"
 

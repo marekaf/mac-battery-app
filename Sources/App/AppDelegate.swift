@@ -5,6 +5,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusBarController: StatusBarController!
     private var deviceManager: DeviceManager!
     private var settingsStore: SettingsStore!
+    private var notificationManager: NotificationManager!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let store = SettingsStore()
@@ -13,9 +14,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         settingsStore = store
         statusBarController = controller
         deviceManager = DeviceManager()
+        notificationManager = NotificationManager()
 
         deviceManager.onDevicesChanged = { [weak self] devices in
-            self?.statusBarController.update(devices: devices)
+            guard let self = self else { return }
+            self.statusBarController.update(devices: devices)
+            self.notificationManager.checkAndNotify(devices: devices, threshold: self.settingsStore.lowBatteryThreshold)
         }
 
         statusBarController.update(devices: deviceManager.devices)
@@ -32,6 +36,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self = self else { return }
             self.statusBarController.update(devices: self.statusBarController.allDevices)
         }
+    }
+
+    @objc func setLowBatteryThreshold(_ sender: NSMenuItem) {
+        settingsStore.setLowBatteryThreshold(sender.tag)
+        statusBarController.update(devices: statusBarController.allDevices)
     }
 
     @objc func toggleLaunchAtLogin(_ sender: NSMenuItem) {
