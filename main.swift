@@ -31,6 +31,10 @@ struct BluetoothDevice: Identifiable, Equatable {
     }
 }
 
+func sanitizeDeviceName(_ name: String) -> String {
+    String(name.prefix(100)).filter { !$0.isNewline && !$0.isControl }
+}
+
 func detectDeviceType(from name: String) -> DeviceType {
     let lower = name.lowercased()
     if lower.contains("keyboard") { return .keyboard }
@@ -125,11 +129,11 @@ func readIOKitBatteryDevices(nameMap: [String: String]) -> [BluetoothDevice] {
         if seen.contains(address) { continue }
         seen.insert(address)
 
-        var name = props["Product"] as? String ?? ""
+        var name = sanitizeDeviceName(props["Product"] as? String ?? "")
 
         if name.isEmpty {
-            if let mappedName = nameMap[address] {
-                name = mappedName
+            if let mappedName = nameMap[address], !mappedName.isEmpty {
+                name = sanitizeDeviceName(mappedName)
             } else if let wakeReason = props["WakeReason"] as? String {
                 name = parseDeviceTypeFromWakeReason(wakeReason)
             } else {
@@ -198,7 +202,7 @@ class BLEBatteryReader: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             if !discoveredPeripherals.contains(where: { $0.identifier == peripheral.identifier }) {
                 discoveredPeripherals.append(peripheral)
                 peripheral.delegate = self
-                peripheralNames[peripheral.identifier] = peripheral.name ?? "BLE Device"
+                peripheralNames[peripheral.identifier] = sanitizeDeviceName(peripheral.name ?? "BLE Device")
                 centralManager.connect(peripheral, options: nil)
             }
         }
@@ -239,7 +243,7 @@ class BLEBatteryReader: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         let level = max(0, min(100, Int(data[0])))
         peripheralBatteryLevels[peripheral.identifier] = level
         if let name = peripheral.name, !name.isEmpty {
-            peripheralNames[peripheral.identifier] = name
+            peripheralNames[peripheral.identifier] = sanitizeDeviceName(name)
         }
         notifyDevicesUpdated()
     }
