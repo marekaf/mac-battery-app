@@ -1,0 +1,29 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Package
+        run: ditto -c -k --keepParent BatteryBar.app BatteryBar.zip
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: BatteryBar.zip
+          generate_release_notes: true
