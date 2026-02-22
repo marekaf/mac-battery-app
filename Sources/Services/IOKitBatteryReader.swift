@@ -9,7 +9,7 @@ let kIOMainPortCompat: mach_port_t = {
     }
 }()
 
-func readIOKitBatteryDevices(nameMap: [String: String]) -> [BluetoothDevice] {
+func readIOKitBatteryDevices(nameMap: [String: BluetoothDeviceInfo]) -> [BluetoothDevice] {
     var devices: [BluetoothDevice] = []
     var seen = Set<String>()
 
@@ -42,9 +42,10 @@ func readIOKitBatteryDevices(nameMap: [String: String]) -> [BluetoothDevice] {
         seen.insert(address)
 
         var name = sanitizeDeviceName(props["Product"] as? String ?? "")
+        let info = nameMap[address]
 
         if name.isEmpty {
-            if let mappedName = nameMap[address], !mappedName.isEmpty {
+            if let mappedName = info?.name, !mappedName.isEmpty {
                 name = sanitizeDeviceName(mappedName)
             } else if let wakeReason = props["WakeReason"] as? String {
                 name = parseDeviceTypeFromWakeReason(wakeReason)
@@ -54,7 +55,10 @@ func readIOKitBatteryDevices(nameMap: [String: String]) -> [BluetoothDevice] {
         }
 
         let deviceType = detectDeviceType(from: name)
-        devices.append(BluetoothDevice(id: address, name: name, batteryLevel: battery, deviceType: deviceType))
+        devices.append(BluetoothDevice(
+            id: address, name: name, batteryLevel: battery, deviceType: deviceType,
+            leftBattery: info?.leftBattery, rightBattery: info?.rightBattery, caseBattery: info?.caseBattery
+        ))
     }
 
     return devices

@@ -3,7 +3,7 @@ import Foundation
 class DeviceManager {
     private var timer: Timer?
     private let bleReader = BLEBatteryReader()
-    private var nameMap: [String: String] = [:]
+    private var nameMap: [String: BluetoothDeviceInfo] = [:]
     private(set) var devices: [BluetoothDevice] = []
     var onDevicesChanged: (([BluetoothDevice]) -> Void)?
     private var refreshInterval: TimeInterval

@@ -31,7 +31,11 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     private func sendNotification(for device: BluetoothDevice) {
         let content = UNMutableNotificationContent()
         content.title = "Low Battery: \(device.name)"
-        content.body = "\(device.name) is at \(device.batteryLevel)%."
+        var body = "\(device.name) is at \(device.batteryLevel)%."
+        if let compText = device.componentBatteryText {
+            body += " \(compText)"
+        }
+        content.body = body
         content.sound = .default
 
         let request = UNNotificationRequest(

@@ -152,13 +152,23 @@ class StatusBarController {
         }
 
         button.attributedTitle = attributed
-        button.toolTip = "\(device.name): \(device.batteryLevel)%"
+        if let compText = device.componentBatteryText {
+            button.toolTip = "\(device.name): \(compText)"
+        } else {
+            button.toolTip = "\(device.name): \(device.batteryLevel)%"
+        }
     }
 
     private func buildSeparateModeMenu(allDevices: [BluetoothDevice], infoDevice: BluetoothDevice) -> NSMenu {
         let menu = NSMenu()
 
-        let infoItem = NSMenuItem(title: "\(infoDevice.name) — \(infoDevice.batteryLevel)%", action: nil, keyEquivalent: "")
+        let infoTitle: String
+        if let compText = infoDevice.componentBatteryText {
+            infoTitle = "\(infoDevice.name) — \(compText)"
+        } else {
+            infoTitle = "\(infoDevice.name) — \(infoDevice.batteryLevel)%"
+        }
+        let infoItem = NSMenuItem(title: infoTitle, action: nil, keyEquivalent: "")
         infoItem.isEnabled = false
         menu.addItem(infoItem)
         menu.addItem(NSMenuItem.separator())
@@ -180,7 +190,8 @@ class StatusBarController {
         let threshold = settingsStore?.lowBatteryThreshold ?? 10
         for device in visibleDevices.sorted(by: { $0.batteryLevel < $1.batteryLevel }) {
             let icon = device.deviceType.sfSymbolName
-            let title = "\(device.name)   \(device.batteryLevel)%"
+            let batteryDisplay = device.componentBatteryText ?? "\(device.batteryLevel)%"
+            let title = "\(device.name)   \(batteryDisplay)"
             let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
             item.isEnabled = false
             if let symbolImage = NSImage(systemSymbolName: icon, accessibilityDescription: device.name) {
