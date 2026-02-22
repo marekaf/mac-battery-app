@@ -258,9 +258,7 @@ class BLEBatteryReader: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                 deviceType: detectDeviceType(from: name)
             )
         }
-        DispatchQueue.main.async { [weak self] in
-            self?.onDevicesUpdated?(devices)
-        }
+        onDevicesUpdated?(devices)
     }
 
     func currentDevices() -> [BluetoothDevice] {
@@ -303,9 +301,15 @@ class DeviceManager {
     }
 
     func refresh() {
-        nameMap = buildBluetoothNameMap()
-        bleReader.scanForConnectedPeripherals()
-        mergeAndNotify()
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let map = buildBluetoothNameMap()
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.nameMap = map
+                self.bleReader.scanForConnectedPeripherals()
+                self.mergeAndNotify()
+            }
+        }
     }
 
     private func mergeAndNotify() {
