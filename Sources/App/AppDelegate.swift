@@ -54,6 +54,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusBarController.update(devices: statusBarController.allDevices)
     }
 
+    @objc func setDisplayMode(_ sender: NSMenuItem) {
+        guard let mode = sender.representedObject as? String else { return }
+        settingsStore.setDisplayMode(mode)
+        statusBarController.update(devices: statusBarController.allDevices)
+    }
+
     @objc func toggleLaunchAtLogin(_ sender: NSMenuItem) {
         do {
             if SMAppService.mainApp.status == .enabled {

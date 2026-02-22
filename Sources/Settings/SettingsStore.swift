@@ -5,6 +5,7 @@ class SettingsStore {
     private let thresholdKey = "lowBatteryThreshold"
     private let refreshIntervalKey = "refreshInterval"
     private let showPercentageKey = "showPercentage"
+    private let displayModeKey = "displayMode"
 
     private(set) var hiddenDeviceIDs: Set<String> {
         didSet {
@@ -30,6 +31,16 @@ class SettingsStore {
         }
     }
 
+    private(set) var displayMode: String {
+        didSet {
+            UserDefaults.standard.set(displayMode, forKey: displayModeKey)
+        }
+    }
+
+    var isSingleMode: Bool {
+        displayMode == "single"
+    }
+
     init() {
         let stored = UserDefaults.standard.stringArray(forKey: hiddenKey) ?? []
         hiddenDeviceIDs = Set(stored)
@@ -42,6 +53,7 @@ class SettingsStore {
         } else {
             showPercentage = true
         }
+        displayMode = UserDefaults.standard.string(forKey: displayModeKey) ?? "separate"
     }
 
     func setLowBatteryThreshold(_ value: Int) {
@@ -54,6 +66,10 @@ class SettingsStore {
 
     func setShowPercentage(_ value: Bool) {
         showPercentage = value
+    }
+
+    func setDisplayMode(_ value: String) {
+        displayMode = value
     }
 
     func isHidden(_ id: String) -> Bool {
