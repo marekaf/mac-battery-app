@@ -14,6 +14,7 @@ mkdir -p "${MACOS_DIR}" "${RESOURCES_DIR}"
 echo "Compiling main.swift..."
 swiftc main.swift \
     -target arm64-apple-macos13.0 \
+    -O \
     -framework AppKit \
     -framework IOKit \
     -framework CoreBluetooth \
