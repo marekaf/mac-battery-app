@@ -115,7 +115,8 @@ func readIOKitBatteryDevices(nameMap: [String: String]) -> [BluetoothDevice] {
         let isBluetooth = props["BluetoothDevice"] as? Bool ?? false
         guard isBluetooth else { continue }
 
-        guard let battery = props["BatteryPercent"] as? Int else { continue }
+        guard let rawBattery = props["BatteryPercent"] as? Int else { continue }
+        let battery = max(0, min(100, rawBattery))
 
         let rawAddress = props["DeviceAddress"] as? String ?? ""
         let address = rawAddress.lowercased()
@@ -235,7 +236,7 @@ class BLEBatteryReader: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         guard characteristic.uuid == batteryLevelCharUUID,
               let data = characteristic.value,
               !data.isEmpty else { return }
-        let level = Int(data[0])
+        let level = max(0, min(100, Int(data[0])))
         peripheralBatteryLevels[peripheral.identifier] = level
         if let name = peripheral.name, !name.isEmpty {
             peripheralNames[peripheral.identifier] = name
