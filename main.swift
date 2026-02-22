@@ -285,6 +285,11 @@ class DeviceManager {
 
     private var bleDevices: [BluetoothDevice] = []
 
+    deinit {
+        timer?.invalidate()
+        bleReader.onDevicesUpdated = nil
+    }
+
     init() {
         nameMap = buildBluetoothNameMap()
 
