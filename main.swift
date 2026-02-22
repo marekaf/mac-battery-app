@@ -32,7 +32,9 @@ struct BluetoothDevice: Identifiable, Equatable {
 }
 
 func sanitizeDeviceName(_ name: String) -> String {
-    String(name.prefix(100)).filter { !$0.isNewline && !$0.isControl }
+    String(name.prefix(100)).filter { char in
+        char.unicodeScalars.allSatisfy { !CharacterSet.controlCharacters.contains($0) }
+    }
 }
 
 func detectDeviceType(from name: String) -> DeviceType {
