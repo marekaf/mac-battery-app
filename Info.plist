@@ -18,5 +18,7 @@
     <true/>
     <key>NSBluetoothAlwaysUsageDescription</key>
     <string>BatteryBar reads battery levels from connected Bluetooth devices.</string>
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>BatteryBar discovers and reads battery levels from connected Bluetooth devices.</string>
 </dict>
 </plist>
