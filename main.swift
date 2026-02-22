@@ -445,7 +445,8 @@ class StatusBarController {
 
         let attributed = NSMutableAttributedString()
 
-        if let symbolImage = NSImage(systemSymbolName: device.deviceType.sfSymbolName, accessibilityDescription: nil) {
+        let a11yDescription = "\(device.name) battery"
+        if let symbolImage = NSImage(systemSymbolName: device.deviceType.sfSymbolName, accessibilityDescription: a11yDescription) {
             let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
             let configured = symbolImage.withSymbolConfiguration(config) ?? symbolImage
             let attachment = NSTextAttachment()
@@ -464,7 +465,7 @@ class StatusBarController {
 
         if device.batteryLevel <= 10 {
             button.image?.isTemplate = false
-            if let symbolImage = NSImage(systemSymbolName: device.deviceType.sfSymbolName, accessibilityDescription: nil) {
+            if let symbolImage = NSImage(systemSymbolName: device.deviceType.sfSymbolName, accessibilityDescription: a11yDescription) {
                 let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
                     .applying(NSImage.SymbolConfiguration(paletteColors: [.systemRed]))
                 let configured = symbolImage.withSymbolConfiguration(config) ?? symbolImage
