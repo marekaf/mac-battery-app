@@ -1,4 +1,6 @@
 BatteryBar.app/
+BatteryBar.zip
 .DS_Store
 *.o
 *.swp
+*.dSYM/
