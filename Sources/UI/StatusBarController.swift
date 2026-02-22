@@ -81,14 +81,17 @@ class StatusBarController {
         }
 
         let threshold = settingsStore?.lowBatteryThreshold ?? 10
+        let showPct = settingsStore?.showPercentage ?? true
         let color: NSColor = device.batteryLevel <= threshold ? .systemRed : .headerTextColor
-        let text = " \(device.batteryLevel)%"
+        let text = showPct ? " \(device.batteryLevel)%" : ""
         let textAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular),
             .foregroundColor: color,
             .baselineOffset: 1 as NSNumber
         ]
-        attributed.append(NSAttributedString(string: text, attributes: textAttrs))
+        if showPct {
+            attributed.append(NSAttributedString(string: text, attributes: textAttrs))
+        }
 
         if device.batteryLevel <= threshold {
             button.image?.isTemplate = false
@@ -100,7 +103,9 @@ class StatusBarController {
                 attachment.image = configured
                 let redAttributed = NSMutableAttributedString()
                 redAttributed.append(NSAttributedString(attachment: attachment))
-                redAttributed.append(NSAttributedString(string: text, attributes: textAttrs))
+                if showPct {
+                    redAttributed.append(NSAttributedString(string: text, attributes: textAttrs))
+                }
                 button.attributedTitle = redAttributed
             } else {
                 button.attributedTitle = attributed
@@ -149,6 +154,23 @@ class StatusBarController {
         }
         thresholdItem.submenu = thresholdMenu
         menu.addItem(thresholdItem)
+
+        let intervalItem = NSMenuItem(title: "Refresh Interval", action: nil, keyEquivalent: "")
+        let intervalMenu = NSMenu()
+        let currentInterval = settingsStore?.refreshInterval ?? 30
+        for seconds in [10, 30, 60, 120] {
+            let label = seconds < 60 ? "\(seconds)s" : "\(seconds / 60)m"
+            let item = NSMenuItem(title: label, action: #selector(AppDelegate.setRefreshInterval(_:)), keyEquivalent: "")
+            item.tag = seconds
+            item.state = (seconds == currentInterval) ? .on : .off
+            intervalMenu.addItem(item)
+        }
+        intervalItem.submenu = intervalMenu
+        menu.addItem(intervalItem)
+
+        let showPctItem = NSMenuItem(title: "Show Percentage", action: #selector(AppDelegate.toggleShowPercentage(_:)), keyEquivalent: "")
+        showPctItem.state = (settingsStore?.showPercentage ?? true) ? .on : .off
+        menu.addItem(showPctItem)
 
         menu.addItem(NSMenuItem.separator())
 
