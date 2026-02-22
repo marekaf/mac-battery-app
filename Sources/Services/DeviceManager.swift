@@ -6,6 +6,7 @@ class DeviceManager {
     private var nameMap: [String: String] = [:]
     private(set) var devices: [BluetoothDevice] = []
     var onDevicesChanged: (([BluetoothDevice]) -> Void)?
+    private var refreshInterval: TimeInterval
 
     private var bleDevices: [BluetoothDevice] = []
 
@@ -14,7 +15,8 @@ class DeviceManager {
         bleReader.onDevicesUpdated = nil
     }
 
-    init() {
+    init(refreshInterval: Int = 30) {
+        self.refreshInterval = TimeInterval(refreshInterval)
         nameMap = buildBluetoothNameMap()
 
         bleReader.onDevicesUpdated = { [weak self] devices in
@@ -24,7 +26,17 @@ class DeviceManager {
         }
 
         refresh()
-        timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+        startTimer()
+    }
+
+    func updateRefreshInterval(_ seconds: Int) {
+        refreshInterval = TimeInterval(seconds)
+        timer?.invalidate()
+        startTimer()
+    }
+
+    private func startTimer() {
+        timer = Timer.scheduledTimer(withTimeInterval: refreshInterval, repeats: true) { [weak self] _ in
             self?.refresh()
         }
     }

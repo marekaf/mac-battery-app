@@ -13,7 +13,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         controller.settingsStore = store
         settingsStore = store
         statusBarController = controller
-        deviceManager = DeviceManager()
+        deviceManager = DeviceManager(refreshInterval: store.refreshInterval)
         notificationManager = NotificationManager()
 
         deviceManager.onDevicesChanged = { [weak self] devices in
@@ -40,6 +40,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func setLowBatteryThreshold(_ sender: NSMenuItem) {
         settingsStore.setLowBatteryThreshold(sender.tag)
+        statusBarController.update(devices: statusBarController.allDevices)
+    }
+
+    @objc func setRefreshInterval(_ sender: NSMenuItem) {
+        settingsStore.setRefreshInterval(sender.tag)
+        deviceManager.updateRefreshInterval(sender.tag)
+        statusBarController.update(devices: statusBarController.allDevices)
+    }
+
+    @objc func toggleShowPercentage(_ sender: NSMenuItem) {
+        settingsStore.setShowPercentage(!(settingsStore.showPercentage))
         statusBarController.update(devices: statusBarController.allDevices)
     }
 
