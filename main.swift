@@ -534,9 +534,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsStore: SettingsStore!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        settingsStore = SettingsStore()
-        statusBarController = StatusBarController()
-        statusBarController.settingsStore = settingsStore
+        let store = SettingsStore()
+        let controller = StatusBarController()
+        controller.settingsStore = store
+        settingsStore = store
+        statusBarController = controller
         deviceManager = DeviceManager()
 
         deviceManager.onDevicesChanged = { [weak self] devices in
