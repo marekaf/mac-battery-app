@@ -59,6 +59,12 @@ func buildBluetoothNameMap() -> [String: String] {
         try process.run()
         process.waitUntilExit()
     } catch {
+        NSLog("Failed to run system_profiler: %@", error.localizedDescription)
+        return map
+    }
+
+    if process.terminationStatus != 0 {
+        NSLog("system_profiler exited with status %d", process.terminationStatus)
         return map
     }
 
