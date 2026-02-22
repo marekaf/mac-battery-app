@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key>
-    <string>com.marekbartik.batterybar</string>
+    <string>com.github.marekaf.batterybar</string>
     <key>CFBundleName</key>
     <string>BatteryBar</string>
     <key>CFBundleExecutable</key>

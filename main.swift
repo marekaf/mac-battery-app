@@ -2,6 +2,7 @@ import AppKit
 import IOKit
 import CoreBluetooth
 import Combine
+import ServiceManagement
 
 // MARK: - Data Model
 
@@ -367,10 +368,10 @@ class StatusBarController {
         let visibleDevices = devices.filter { !store.isHidden($0.id) }
 
         if visibleDevices.isEmpty && !devices.isEmpty {
-            for (id, item) in statusItems {
+            for (_, item) in statusItems {
                 NSStatusBar.system.removeStatusItem(item)
-                statusItems.removeValue(forKey: id)
             }
+            statusItems.removeAll()
             showAnchorItem(allDevices: devices)
             return
         }
@@ -491,6 +492,11 @@ class StatusBarController {
 
         let refreshItem = NSMenuItem(title: "Refresh", action: #selector(AppDelegate.refreshDevices), keyEquivalent: "r")
         menu.addItem(refreshItem)
+
+        let loginItem = NSMenuItem(title: "Launch at Login", action: #selector(AppDelegate.toggleLaunchAtLogin(_:)), keyEquivalent: "")
+        loginItem.state = (SMAppService.mainApp.status == .enabled) ? .on : .off
+        menu.addItem(loginItem)
+
         menu.addItem(NSMenuItem.separator())
 
         let quitItem = NSMenuItem(title: "Quit BatteryBar", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -527,7 +533,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func toggleDeviceVisibility(_ sender: NSMenuItem) {
         guard let deviceID = sender.representedObject as? String else { return }
         settingsStore.toggleVisibility(deviceID)
-        statusBarController.update(devices: statusBarController.allDevices)
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.statusBarController.update(devices: self.statusBarController.allDevices)
+        }
+    }
+
+    @objc func toggleLaunchAtLogin(_ sender: NSMenuItem) {
+        do {
+            if SMAppService.mainApp.status == .enabled {
+                try SMAppService.mainApp.unregister()
+            } else {
+                try SMAppService.mainApp.register()
+            }
+        } catch {
+            NSLog("Failed to toggle launch at login: %@", error.localizedDescription)
+        }
     }
 }
 

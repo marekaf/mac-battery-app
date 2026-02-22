@@ -17,6 +17,7 @@ swiftc main.swift \
     -framework AppKit \
     -framework IOKit \
     -framework CoreBluetooth \
+    -framework ServiceManagement \
     -o "${MACOS_DIR}/${APP_NAME}"
 
 cp Info.plist "${CONTENTS_DIR}/Info.plist"
