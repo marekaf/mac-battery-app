@@ -51,7 +51,7 @@ class StatusBarController {
     }
 
     private func updateSingleMode(visibleDevices: [BluetoothDevice], allDevices: [BluetoothDevice]) {
-        guard let lowestDevice = visibleDevices.min(by: { $0.batteryLevel < $1.batteryLevel }) else {
+        guard !visibleDevices.isEmpty else {
             removeSingleItem()
             return
         }
@@ -59,9 +59,49 @@ class StatusBarController {
         if singleItem == nil {
             singleItem = createStatusItem()
         }
-        guard let item = singleItem else { return }
+        guard let item = singleItem, let button = item.button else { return }
 
-        configureStatusItemAppearance(item, for: lowestDevice)
+        let threshold = settingsStore?.lowBatteryThreshold ?? 10
+        let showPct = settingsStore?.showPercentage ?? true
+        let attributed = NSMutableAttributedString()
+
+        for (index, device) in visibleDevices.enumerated() {
+            let isLow = device.batteryLevel <= threshold
+            let color: NSColor = isLow ? .systemRed : .headerTextColor
+
+            if let symbolImage = NSImage(systemSymbolName: device.deviceType.sfSymbolName, accessibilityDescription: device.name) {
+                var config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
+                if isLow {
+                    config = config.applying(NSImage.SymbolConfiguration(paletteColors: [.systemRed]))
+                }
+                let configured = symbolImage.withSymbolConfiguration(config) ?? symbolImage
+                let attachment = NSTextAttachment()
+                attachment.image = configured
+                attributed.append(NSAttributedString(attachment: attachment))
+            }
+
+            if showPct {
+                let textAttrs: [NSAttributedString.Key: Any] = [
+                    .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular),
+                    .foregroundColor: color,
+                    .baselineOffset: 1 as NSNumber
+                ]
+                attributed.append(NSAttributedString(string: " \(device.batteryLevel)%", attributes: textAttrs))
+            }
+
+            if index < visibleDevices.count - 1 {
+                attributed.append(NSAttributedString(string: "  "))
+            }
+        }
+
+        button.attributedTitle = attributed
+        let tooltipLines = visibleDevices.map { device in
+            if let compText = device.componentBatteryText {
+                return "\(device.name): \(compText)"
+            }
+            return "\(device.name): \(device.batteryLevel)%"
+        }
+        button.toolTip = tooltipLines.joined(separator: "\n")
         item.menu = buildSingleModeMenu(visibleDevices: visibleDevices, allDevices: allDevices)
     }
 
@@ -260,7 +300,7 @@ class StatusBarController {
         let displayModeItem = NSMenuItem(title: "Display Mode", action: nil, keyEquivalent: "")
         let displayModeMenu = NSMenu()
         let currentMode = settingsStore?.displayMode ?? "separate"
-        for (mode, label) in [("separate", "Separate Icons"), ("single", "Single Icon")] {
+        for (mode, label) in [("separate", "Separate Icons"), ("single", "Combined Icon")] {
             let item = NSMenuItem(title: label, action: #selector(AppDelegate.setDisplayMode(_:)), keyEquivalent: "")
             item.representedObject = mode
             item.state = (mode == currentMode) ? .on : .off
