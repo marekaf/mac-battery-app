@@ -86,36 +86,37 @@ class StatusBarController {
         guard let item = singleItem, let button = item.button else { return }
 
         let threshold = settingsStore?.lowBatteryThreshold ?? 10
-        let showPct = (settingsStore?.showPercentage ?? true) && !(settingsStore?.isCompactMode ?? false)
+        let isCompact = settingsStore?.isCompactMode ?? false
         let attributed = NSMutableAttributedString()
 
         for (index, device) in visibleDevices.enumerated() {
             let isLow = device.batteryLevel <= threshold
             let color: NSColor = isLow ? .systemRed : .headerTextColor
 
-            let devName = displayName(device)
-            if let symbolImage = NSImage(systemSymbolName: device.deviceType.sfSymbolName, accessibilityDescription: devName) {
-                var config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
-                if isLow {
-                    config = config.applying(NSImage.SymbolConfiguration(paletteColors: [.systemRed]))
+            if !isCompact {
+                let devName = displayName(device)
+                if let symbolImage = NSImage(systemSymbolName: device.deviceType.sfSymbolName, accessibilityDescription: devName) {
+                    var config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
+                    if isLow {
+                        config = config.applying(NSImage.SymbolConfiguration(paletteColors: [.systemRed]))
+                    }
+                    let configured = symbolImage.withSymbolConfiguration(config) ?? symbolImage
+                    let attachment = NSTextAttachment()
+                    attachment.image = configured
+                    attributed.append(NSAttributedString(attachment: attachment))
                 }
-                let configured = symbolImage.withSymbolConfiguration(config) ?? symbolImage
-                let attachment = NSTextAttachment()
-                attachment.image = configured
-                attributed.append(NSAttributedString(attachment: attachment))
             }
 
-            if showPct {
-                let textAttrs: [NSAttributedString.Key: Any] = [
-                    .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular),
-                    .foregroundColor: color,
-                    .baselineOffset: 1 as NSNumber
-                ]
-                attributed.append(NSAttributedString(string: " \(device.batteryLevel)%", attributes: textAttrs))
-            }
+            let textAttrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular),
+                .foregroundColor: color,
+                .baselineOffset: 1 as NSNumber
+            ]
+            let prefix = isCompact ? "" : " "
+            attributed.append(NSAttributedString(string: "\(prefix)\(device.batteryLevel)%", attributes: textAttrs))
 
             if index < visibleDevices.count - 1 {
-                attributed.append(NSAttributedString(string: "  "))
+                attributed.append(NSAttributedString(string: isCompact ? " " : "  "))
             }
         }
 
@@ -179,11 +180,9 @@ class StatusBarController {
         guard let button = item.button else { return }
 
         let threshold = settingsStore?.lowBatteryThreshold ?? 10
-        let showPct = settingsStore?.showPercentage ?? true
         let isLow = device.batteryLevel <= threshold
         let color: NSColor = isLow ? .systemRed : .headerTextColor
         let devName = displayName(device)
-        let text = showPct ? " \(device.batteryLevel)%" : ""
         let a11yDescription = "\(devName) battery"
 
         let textAttrs: [NSAttributedString.Key: Any] = [
@@ -214,9 +213,7 @@ class StatusBarController {
             }
         }
 
-        if showPct {
-            attributed.append(NSAttributedString(string: text, attributes: textAttrs))
-        }
+        attributed.append(NSAttributedString(string: " \(device.batteryLevel)%", attributes: textAttrs))
 
         button.attributedTitle = attributed
         if let compText = device.componentBatteryText {
@@ -358,14 +355,10 @@ class StatusBarController {
         intervalItem.submenu = intervalMenu
         menu.addItem(intervalItem)
 
-        let showPctItem = NSMenuItem(title: "Show Percentage", action: #selector(AppDelegate.toggleShowPercentage(_:)), keyEquivalent: "")
-        showPctItem.state = (settingsStore?.showPercentage ?? true) ? .on : .off
-        menu.addItem(showPctItem)
-
         let displayModeItem = NSMenuItem(title: "Display Mode", action: nil, keyEquivalent: "")
         let displayModeMenu = NSMenu()
         let currentMode = settingsStore?.displayMode ?? "separate"
-        for (mode, label) in [("separate", "Separate Icons"), ("single", "Combined Icon"), ("compact", "Compact Combined")] {
+        for (mode, label) in [("separate", "Separate Icons"), ("single", "Combined Icon"), ("compact", "Percentages Only")] {
             let item = NSMenuItem(title: label, action: #selector(AppDelegate.setDisplayMode(_:)), keyEquivalent: "")
             item.representedObject = mode
             item.state = (mode == currentMode) ? .on : .off
