@@ -6,6 +6,23 @@ A lightweight macOS menu bar app that shows battery levels for connected Bluetoo
 
 ## Install
 
+### Homebrew (recommended)
+
+```bash
+brew install marekaf/tap/batterybar
+```
+
+Then copy to Applications and launch:
+
+```bash
+cp -R $(brew --prefix)/Cellar/batterybar/*/BatteryBar.app /Applications/
+open /Applications/BatteryBar.app
+```
+
+This builds from source (~60-90s) and avoids all Gatekeeper prompts.
+
+### Manual download
+
 1. Download `BatteryBar.zip` from the [latest release](../../releases/latest)
 2. Unzip and move `BatteryBar.app` to `/Applications`
 3. On first launch: right-click the app > Open (required for unsigned apps)
