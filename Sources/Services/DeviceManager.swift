@@ -66,7 +66,7 @@ class DeviceManager {
         }
 
         let knownIDs = Set(merged.map { $0.id })
-        let knownNames = Set(merged.map { $0.name })
+        var knownNames = Set(merged.map { $0.name })
         for (address, info) in nameMap {
             guard !knownIDs.contains(address) else { continue }
             guard !knownNames.contains(info.name) else { continue }
@@ -83,6 +83,7 @@ class DeviceManager {
             }
 
             let name = sanitizeDeviceName(info.name)
+            knownNames.insert(name)
             merged.append(BluetoothDevice(
                 id: address, name: name, batteryLevel: battery,
                 deviceType: detectDeviceType(from: name),
