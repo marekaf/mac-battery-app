@@ -33,6 +33,31 @@ class BatteryHistoryStore {
         history[deviceID] ?? []
     }
 
+    func estimatedTimeRemaining(for deviceID: String) -> String? {
+        let all = readings(for: deviceID)
+        guard all.count >= 2 else { return nil }
+        let cutoff = Date().addingTimeInterval(-3600)
+        let recent = all.filter { $0.timestamp >= cutoff }
+        guard recent.count >= 2,
+              let first = recent.first, let last = recent.last else { return nil }
+        let timeDelta = last.timestamp.timeIntervalSince(first.timestamp)
+        guard timeDelta > 300 else { return nil }
+        let levelDrop = Double(first.level - last.level)
+        guard levelDrop > 0 else { return "Charging or stable" }
+        let drainPerHour = levelDrop / (timeDelta / 3600.0)
+        let hoursLeft = Double(last.level) / drainPerHour
+        if hoursLeft < 1 {
+            let mins = Int(hoursLeft * 60)
+            return "~\(mins)m remaining"
+        }
+        let hours = Int(hoursLeft)
+        let mins = Int((hoursLeft - Double(hours)) * 60)
+        if mins == 0 {
+            return "~\(hours)h remaining"
+        }
+        return "~\(hours)h \(mins)m remaining"
+    }
+
     private func save() {
         if let data = try? JSONEncoder().encode(history) {
             UserDefaults.standard.set(data, forKey: historyKey)

@@ -26,7 +26,7 @@ A lightweight macOS menu bar app that shows battery levels for connected Bluetoo
 - Display modes: separate icons, combined icon, or compact combined (icons only)
 - Custom device names — rename any device from the menu
 - Custom device order — reorder devices via move up/down
-- Battery history sparkline graph per device in the dropdown menu
+- Estimated battery time remaining per device
 - Per-device visibility toggles — hide/show devices directly from the dropdown menu
 - Configurable low battery threshold (5/10/15/20/25%)
 - Low battery notifications via macOS native alerts
