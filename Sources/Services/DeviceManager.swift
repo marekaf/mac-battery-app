@@ -65,6 +65,31 @@ class DeviceManager {
             }
         }
 
+        let knownIDs = Set(merged.map { $0.id })
+        let knownNames = Set(merged.map { $0.name })
+        for (address, info) in nameMap {
+            guard !knownIDs.contains(address) else { continue }
+            guard !knownNames.contains(info.name) else { continue }
+            let hasAnyBattery = info.batteryLevel != nil || info.leftBattery != nil
+                || info.rightBattery != nil || info.caseBattery != nil
+            guard hasAnyBattery else { continue }
+
+            let battery: Int
+            if let level = info.batteryLevel {
+                battery = level
+            } else {
+                let levels = [info.leftBattery, info.rightBattery, info.caseBattery].compactMap { $0 }
+                battery = levels.isEmpty ? 0 : levels.reduce(0, +) / levels.count
+            }
+
+            let name = sanitizeDeviceName(info.name)
+            merged.append(BluetoothDevice(
+                id: address, name: name, batteryLevel: battery,
+                deviceType: detectDeviceType(from: name),
+                leftBattery: info.leftBattery, rightBattery: info.rightBattery, caseBattery: info.caseBattery
+            ))
+        }
+
         merged.sort { $0.name < $1.name }
 
         if merged != devices {
