@@ -25,6 +25,7 @@ A lightweight macOS menu bar app that shows battery levels for connected Bluetoo
 - AirPods individual battery levels (Left, Right, Case)
 - Display modes: separate icons, combined icon, or percentages only
 - Custom device names — rename any device from the menu
+- Custom device icons — override the auto-detected icon per device
 - Custom device order — reorder devices via move up/down
 - Estimated battery time remaining per device
 - Per-device visibility toggles — hide/show devices directly from the dropdown menu
