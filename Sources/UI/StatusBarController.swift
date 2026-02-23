@@ -12,11 +12,30 @@ class StatusBarController {
         settingsStore?.displayName(for: device) ?? device.name
     }
 
+    private func sortByUserOrder(_ devices: [BluetoothDevice]) -> [BluetoothDevice] {
+        guard let store = settingsStore else { return devices }
+        let order = store.deviceOrder
+        if order.isEmpty { return devices }
+        let orderMap = Dictionary(uniqueKeysWithValues: order.enumerated().map { ($1, $0) })
+        return devices.sorted { a, b in
+            let posA = orderMap[a.id] ?? Int.max
+            let posB = orderMap[b.id] ?? Int.max
+            if posA == posB { return a.name < b.name }
+            return posA < posB
+        }
+    }
+
     func update(devices: [BluetoothDevice]) {
-        allDevices = devices
         guard let store = settingsStore else { return }
 
-        let visibleDevices = devices.filter { !store.isHidden($0.id) }
+        let knownIDs = Set(store.deviceOrder)
+        let newIDs = devices.map { $0.id }.filter { !knownIDs.contains($0) }
+        if !newIDs.isEmpty {
+            store.setDeviceOrder(store.deviceOrder + newIDs)
+        }
+
+        allDevices = sortByUserOrder(devices)
+        let visibleDevices = allDevices.filter { !store.isHidden($0.id) }
 
         if visibleDevices.isEmpty && !devices.isEmpty {
             removeAllSeparateItems()
@@ -219,11 +238,6 @@ class StatusBarController {
         let infoItem = NSMenuItem(title: infoTitle, action: nil, keyEquivalent: "")
         infoItem.isEnabled = false
         menu.addItem(infoItem)
-
-        let renameItem = NSMenuItem(title: "Rename...", action: #selector(AppDelegate.renameDevice(_:)), keyEquivalent: "")
-        renameItem.representedObject = infoDevice.id
-        menu.addItem(renameItem)
-
         menu.addItem(NSMenuItem.separator())
 
         appendDeviceToggles(to: menu, allDevices: allDevices)
@@ -268,16 +282,43 @@ class StatusBarController {
     }
 
     private func appendDeviceToggles(to menu: NSMenu, allDevices: [BluetoothDevice]) {
-        let headerItem = NSMenuItem(title: "Show Devices", action: nil, keyEquivalent: "")
+        let headerItem = NSMenuItem(title: "Devices", action: nil, keyEquivalent: "")
         headerItem.isEnabled = false
         menu.addItem(headerItem)
 
-        for device in allDevices {
+        for (index, device) in allDevices.enumerated() {
             let title = "\(displayName(device))   \(device.batteryLevel)%"
-            let toggleItem = NSMenuItem(title: title, action: #selector(AppDelegate.toggleDeviceVisibility(_:)), keyEquivalent: "")
+            let deviceItem = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+            deviceItem.state = (settingsStore?.isHidden(device.id) == true) ? .off : .on
+
+            let subMenu = NSMenu()
+
+            let toggleLabel = (settingsStore?.isHidden(device.id) == true) ? "Show" : "Hide"
+            let toggleItem = NSMenuItem(title: toggleLabel, action: #selector(AppDelegate.toggleDeviceVisibility(_:)), keyEquivalent: "")
             toggleItem.representedObject = device.id
-            toggleItem.state = (settingsStore?.isHidden(device.id) == true) ? .off : .on
-            menu.addItem(toggleItem)
+            subMenu.addItem(toggleItem)
+
+            subMenu.addItem(NSMenuItem.separator())
+
+            if index > 0 {
+                let moveUp = NSMenuItem(title: "Move Up", action: #selector(AppDelegate.moveDeviceUp(_:)), keyEquivalent: "")
+                moveUp.representedObject = device.id
+                subMenu.addItem(moveUp)
+            }
+            if index < allDevices.count - 1 {
+                let moveDown = NSMenuItem(title: "Move Down", action: #selector(AppDelegate.moveDeviceDown(_:)), keyEquivalent: "")
+                moveDown.representedObject = device.id
+                subMenu.addItem(moveDown)
+            }
+
+            subMenu.addItem(NSMenuItem.separator())
+
+            let renameItem = NSMenuItem(title: "Rename...", action: #selector(AppDelegate.renameDevice(_:)), keyEquivalent: "")
+            renameItem.representedObject = device.id
+            subMenu.addItem(renameItem)
+
+            deviceItem.submenu = subMenu
+            menu.addItem(deviceItem)
         }
     }
 

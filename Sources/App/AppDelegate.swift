@@ -62,6 +62,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusBarController.update(devices: statusBarController.allDevices)
     }
 
+    @objc func moveDeviceUp(_ sender: NSMenuItem) {
+        guard let deviceID = sender.representedObject as? String else { return }
+        settingsStore.moveDevice(deviceID, direction: -1)
+        statusBarController.update(devices: statusBarController.allDevices)
+    }
+
+    @objc func moveDeviceDown(_ sender: NSMenuItem) {
+        guard let deviceID = sender.representedObject as? String else { return }
+        settingsStore.moveDevice(deviceID, direction: 1)
+        statusBarController.update(devices: statusBarController.allDevices)
+    }
+
     @objc func renameDevice(_ sender: NSMenuItem) {
         guard let deviceID = sender.representedObject as? String else { return }
         let currentName = settingsStore.customDeviceNames[deviceID]
