@@ -84,6 +84,20 @@ func testSystemProfiler() {
     assertEq(mergedDevice?.batteryLevel, 80, "kept first battery level")
     assertEq(mergedDevice?.leftBattery, 90, "merged left battery")
 
+    // parseBluetoothOutput - 10-space indentation (real macOS output)
+    let tenSpace = """
+      Bluetooth:
+          Connected:
+              AirPods Pro:
+                  Address: 11:22:33:44:55:66
+                  Left Battery Level: 90%
+                  Right Battery Level: 85%
+                  Case Battery Level: 70%
+    """
+    let tenResult = parseBluetoothOutput(text: tenSpace)
+    assertEq(tenResult.count, 1, "10-space indent device count")
+    assertNotNil(tenResult["11-22-33-44-55-66"], "10-space indent device found")
+
     // parseBluetoothOutput - empty input
     let empty = parseBluetoothOutput(text: "")
     assertEq(empty.count, 0, "empty input")

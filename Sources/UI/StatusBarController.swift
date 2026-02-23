@@ -4,33 +4,38 @@ import ServiceManagement
 private let statusBarFontSize: CGFloat = 12
 private let menuIconSize: CGFloat = 14
 private let baselineOffset: CGFloat = 1
+private struct StackedDeviceEntry {
+    let icon: String
+    let text: String
+    let isLow: Bool
+}
+
 private class StackedStatusView: NSView {
-    private var iconName: String = "battery.100percent"
-    private var percentage: String = "100%"
-    private var iconColor: NSColor = .headerTextColor
-    private var textColor: NSColor = .headerTextColor
+    private var entries: [StackedDeviceEntry] = []
     private let font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .medium)
+    private let iconPointSize: CGFloat = 9
+    private let itemSpacing: CGFloat = 6
 
     override var intrinsicContentSize: NSSize {
-        let textSize = (percentage as NSString).size(withAttributes: [.font: font])
-        let iconConfig = NSImage.SymbolConfiguration(pointSize: 9, weight: .medium)
-        let iconWidth: CGFloat
-        if let img = NSImage(systemSymbolName: iconName, accessibilityDescription: nil)?
-            .withSymbolConfiguration(iconConfig) {
-            iconWidth = img.size.width
-        } else {
-            iconWidth = 12
+        var totalWidth: CGFloat = 0
+        let iconConfig = NSImage.SymbolConfiguration(pointSize: iconPointSize, weight: .medium)
+        for (index, entry) in entries.enumerated() {
+            let textSize = (entry.text as NSString).size(withAttributes: [.font: font])
+            let iconWidth: CGFloat
+            if let img = NSImage(systemSymbolName: entry.icon, accessibilityDescription: nil)?
+                .withSymbolConfiguration(iconConfig) {
+                iconWidth = img.size.width
+            } else {
+                iconWidth = 12
+            }
+            totalWidth += max(textSize.width, iconWidth)
+            if index < entries.count - 1 { totalWidth += itemSpacing }
         }
-        let width = max(textSize.width, iconWidth) + 4
-        return NSSize(width: width, height: 22)
+        return NSSize(width: totalWidth + 4, height: 22)
     }
 
-    func update(icon: String, text: String, isLow: Bool) {
-        iconName = icon
-        percentage = text
-        let color: NSColor = isLow ? .systemRed : .headerTextColor
-        iconColor = color
-        textColor = color
+    func update(devices: [StackedDeviceEntry]) {
+        entries = devices
         invalidateIntrinsicContentSize()
         needsDisplay = true
     }
@@ -38,26 +43,38 @@ private class StackedStatusView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         let bounds = self.bounds
         let halfHeight = bounds.height / 2
+        let iconConfig = NSImage.SymbolConfiguration(pointSize: iconPointSize, weight: .medium)
+        var x: CGFloat = 2
 
-        let iconConfig = NSImage.SymbolConfiguration(pointSize: 9, weight: .medium)
-        if let symbolImage = NSImage(systemSymbolName: iconName, accessibilityDescription: nil) {
-            var config = iconConfig
-            config = config.applying(NSImage.SymbolConfiguration(paletteColors: [iconColor]))
-            let configured = symbolImage.withSymbolConfiguration(config) ?? symbolImage
-            let imgSize = configured.size
-            let iconX = (bounds.width - imgSize.width) / 2
-            let iconY = halfHeight + (halfHeight - imgSize.height) / 2
-            configured.draw(in: NSRect(x: iconX, y: iconY, width: imgSize.width, height: imgSize.height))
+        for entry in entries {
+            let color: NSColor = entry.isLow ? .systemRed : .headerTextColor
+            let textAttrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
+            let textSize = (entry.text as NSString).size(withAttributes: textAttrs)
+            let iconWidth: CGFloat
+            var iconImage: NSImage?
+            if let symbolImage = NSImage(systemSymbolName: entry.icon, accessibilityDescription: nil) {
+                var config = iconConfig
+                config = config.applying(NSImage.SymbolConfiguration(paletteColors: [color]))
+                iconImage = symbolImage.withSymbolConfiguration(config) ?? symbolImage
+                iconWidth = iconImage!.size.width
+            } else {
+                iconWidth = 12
+            }
+            let cellWidth = max(textSize.width, iconWidth)
+
+            if let img = iconImage {
+                let imgSize = img.size
+                let iconX = x + (cellWidth - imgSize.width) / 2
+                let iconY = halfHeight + (halfHeight - imgSize.height) / 2
+                img.draw(in: NSRect(x: iconX, y: iconY, width: imgSize.width, height: imgSize.height))
+            }
+
+            let textX = x + (cellWidth - textSize.width) / 2
+            let textY = (halfHeight - textSize.height) / 2
+            (entry.text as NSString).draw(at: NSPoint(x: textX, y: textY), withAttributes: textAttrs)
+
+            x += cellWidth + itemSpacing
         }
-
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: textColor
-        ]
-        let textSize = (percentage as NSString).size(withAttributes: attrs)
-        let textX = (bounds.width - textSize.width) / 2
-        let textY = (halfHeight - textSize.height) / 2
-        (percentage as NSString).draw(at: NSPoint(x: textX, y: textY), withAttributes: attrs)
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -127,9 +144,13 @@ class StatusBarController {
 
         removeAnchorItem()
 
-        if store.isSingleMode {
+        if store.isSingleMode || store.isStackedMode {
             removeAllSeparateItems()
-            updateSingleMode(visibleDevices: visibleDevices, allDevices: devices)
+            if store.isStackedMode {
+                updateStackedMode(visibleDevices: visibleDevices, allDevices: devices)
+            } else {
+                updateSingleMode(visibleDevices: visibleDevices, allDevices: devices)
+            }
         } else {
             removeSingleItem()
             updateSeparateMode(visibleDevices: visibleDevices, allDevices: devices)
@@ -139,7 +160,6 @@ class StatusBarController {
     private func updateSeparateMode(visibleDevices: [BluetoothDevice], allDevices: [BluetoothDevice]) {
         let visibleIDs = Set(visibleDevices.map { $0.id })
         let existingIDs = Set(statusItems.keys)
-        let stacked = settingsStore?.isStackedMode ?? false
 
         for id in existingIDs.subtracting(visibleIDs) {
             if let item = statusItems.removeValue(forKey: id) {
@@ -150,12 +170,7 @@ class StatusBarController {
         for device in visibleDevices {
             let item = statusItems[device.id] ?? createStatusItem()
             statusItems[device.id] = item
-            if stacked {
-                configureStackedAppearance(item, for: device)
-            } else {
-                removeStackedView(from: item)
-                configureStatusItemAppearance(item, for: device)
-            }
+            configureStatusItemAppearance(item, for: device)
             item.menu = buildSeparateModeMenu(allDevices: allDevices, infoDevice: device)
         }
     }
@@ -211,6 +226,58 @@ class StatusBarController {
         item.menu = buildSingleModeMenu(visibleDevices: visibleDevices, allDevices: allDevices)
     }
 
+    private func updateStackedMode(visibleDevices: [BluetoothDevice], allDevices: [BluetoothDevice]) {
+        guard !visibleDevices.isEmpty else {
+            removeSingleItem()
+            return
+        }
+
+        if singleItem == nil {
+            singleItem = createStatusItem()
+        }
+        guard let item = singleItem, let button = item.button else { return }
+
+        let threshold = settingsStore?.lowBatteryThreshold ?? 10
+        let entries = visibleDevices.map { device in
+            StackedDeviceEntry(
+                icon: deviceIcon(device),
+                text: "\(device.batteryLevel)%",
+                isLow: device.batteryLevel <= threshold
+            )
+        }
+
+        button.attributedTitle = NSAttributedString(string: "")
+        button.image = nil
+
+        let stackedView: StackedStatusView
+        if let existing = button.subviews.first(where: { $0 is StackedStatusView }) as? StackedStatusView {
+            stackedView = existing
+        } else {
+            button.subviews.filter { $0 is StackedStatusView }.forEach { $0.removeFromSuperview() }
+            stackedView = StackedStatusView()
+            stackedView.translatesAutoresizingMaskIntoConstraints = false
+            button.addSubview(stackedView)
+            NSLayoutConstraint.activate([
+                stackedView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+                stackedView.leadingAnchor.constraint(equalTo: button.leadingAnchor),
+                stackedView.trailingAnchor.constraint(equalTo: button.trailingAnchor),
+                stackedView.heightAnchor.constraint(equalToConstant: 22),
+            ])
+        }
+
+        stackedView.update(devices: entries)
+
+        let tooltipLines = visibleDevices.map { [weak self] device in
+            let name = self?.displayName(device) ?? device.name
+            if let compText = device.componentBatteryText {
+                return "\(name): \(compText)"
+            }
+            return "\(name): \(device.batteryLevel)%"
+        }
+        button.toolTip = tooltipLines.joined(separator: "\n")
+        item.menu = buildSingleModeMenu(visibleDevices: visibleDevices, allDevices: allDevices)
+    }
+
     private func createStatusItem() -> NSStatusItem {
         NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     }
@@ -250,48 +317,12 @@ class StatusBarController {
 
     private func removeSingleItem() {
         if let item = singleItem {
+            if let button = item.button {
+                button.subviews.filter { $0 is StackedStatusView }.forEach { $0.removeFromSuperview() }
+            }
             NSStatusBar.system.removeStatusItem(item)
             singleItem = nil
         }
-    }
-
-    private func configureStackedAppearance(_ item: NSStatusItem, for device: BluetoothDevice) {
-        guard let button = item.button else { return }
-
-        let threshold = settingsStore?.lowBatteryThreshold ?? 10
-        let isLow = device.batteryLevel <= threshold
-        let devName = displayName(device)
-
-        button.attributedTitle = NSAttributedString(string: "")
-        button.image = nil
-
-        let stackedView: StackedStatusView
-        if let existing = button.subviews.first(where: { $0 is StackedStatusView }) as? StackedStatusView {
-            stackedView = existing
-        } else {
-            stackedView = StackedStatusView()
-            stackedView.translatesAutoresizingMaskIntoConstraints = false
-            button.addSubview(stackedView)
-            NSLayoutConstraint.activate([
-                stackedView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
-                stackedView.leadingAnchor.constraint(equalTo: button.leadingAnchor),
-                stackedView.trailingAnchor.constraint(equalTo: button.trailingAnchor),
-                stackedView.heightAnchor.constraint(equalToConstant: 22),
-            ])
-        }
-
-        stackedView.update(icon: deviceIcon(device), text: "\(device.batteryLevel)%", isLow: isLow)
-
-        if let compText = device.componentBatteryText {
-            button.toolTip = "\(devName): \(compText)"
-        } else {
-            button.toolTip = "\(devName): \(device.batteryLevel)%"
-        }
-    }
-
-    private func removeStackedView(from item: NSStatusItem) {
-        guard let button = item.button else { return }
-        button.subviews.filter { $0 is StackedStatusView }.forEach { $0.removeFromSuperview() }
     }
 
     private func configureStatusItemAppearance(_ item: NSStatusItem, for device: BluetoothDevice) {
