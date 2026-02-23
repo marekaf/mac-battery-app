@@ -41,6 +41,7 @@ class BLEBatteryReader: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
 
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         peripheralBatteryLevels.removeValue(forKey: peripheral.identifier)
+        peripheralNames.removeValue(forKey: peripheral.identifier)
         discoveredPeripherals.removeAll { $0.identifier == peripheral.identifier }
         notifyDevicesUpdated()
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in

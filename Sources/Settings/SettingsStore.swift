@@ -85,19 +85,21 @@ class SettingsStore {
     }
 
     func setLowBatteryThreshold(_ value: Int) {
-        lowBatteryThreshold = value
+        lowBatteryThreshold = min(max(value, 5), 25)
     }
 
     func setRefreshInterval(_ value: Int) {
-        refreshInterval = value
+        refreshInterval = min(max(value, 10), 120)
     }
 
     func setShowPercentage(_ value: Bool) {
         showPercentage = value
     }
 
+    private static let validDisplayModes: Set<String> = ["separate", "single", "compact"]
+
     func setDisplayMode(_ value: String) {
-        displayMode = value
+        displayMode = Self.validDisplayModes.contains(value) ? value : "separate"
     }
 
     func setCustomName(_ name: String?, for deviceID: String) {
