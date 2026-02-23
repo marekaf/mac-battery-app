@@ -15,12 +15,12 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    func checkAndNotify(devices: [BluetoothDevice], threshold: Int) {
+    func checkAndNotify(devices: [BluetoothDevice], threshold: Int, nameResolver: ((BluetoothDevice) -> String)? = nil) {
         for device in devices {
             if device.batteryLevel <= threshold {
                 if !notifiedDeviceIDs.contains(device.id) {
                     notifiedDeviceIDs.insert(device.id)
-                    sendNotification(for: device)
+                    sendNotification(for: device, nameResolver: nameResolver)
                 }
             } else {
                 notifiedDeviceIDs.remove(device.id)
@@ -28,10 +28,11 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    private func sendNotification(for device: BluetoothDevice) {
+    private func sendNotification(for device: BluetoothDevice, nameResolver: ((BluetoothDevice) -> String)? = nil) {
+        let name = nameResolver?(device) ?? device.name
         let content = UNMutableNotificationContent()
-        content.title = "Low Battery: \(device.name)"
-        var body = "\(device.name) is at \(device.batteryLevel)%."
+        content.title = "Low Battery: \(name)"
+        var body = "\(name) is at \(device.batteryLevel)%."
         if let compText = device.componentBatteryText {
             body += " \(compText)"
         }

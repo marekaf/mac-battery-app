@@ -6,6 +6,7 @@ class SettingsStore {
     private let refreshIntervalKey = "refreshInterval"
     private let showPercentageKey = "showPercentage"
     private let displayModeKey = "displayMode"
+    private let customNamesKey = "customDeviceNames"
 
     private(set) var hiddenDeviceIDs: Set<String> {
         didSet {
@@ -37,6 +38,12 @@ class SettingsStore {
         }
     }
 
+    private(set) var customDeviceNames: [String: String] {
+        didSet {
+            UserDefaults.standard.set(customDeviceNames, forKey: customNamesKey)
+        }
+    }
+
     var isSingleMode: Bool {
         displayMode == "single"
     }
@@ -54,6 +61,7 @@ class SettingsStore {
             showPercentage = true
         }
         displayMode = UserDefaults.standard.string(forKey: displayModeKey) ?? "separate"
+        customDeviceNames = (UserDefaults.standard.dictionary(forKey: customNamesKey) as? [String: String]) ?? [:]
     }
 
     func setLowBatteryThreshold(_ value: Int) {
@@ -70,6 +78,18 @@ class SettingsStore {
 
     func setDisplayMode(_ value: String) {
         displayMode = value
+    }
+
+    func setCustomName(_ name: String?, for deviceID: String) {
+        if let name = name, !name.isEmpty {
+            customDeviceNames[deviceID] = name
+        } else {
+            customDeviceNames.removeValue(forKey: deviceID)
+        }
+    }
+
+    func displayName(for device: BluetoothDevice) -> String {
+        customDeviceNames[device.id] ?? device.name
     }
 
     func isHidden(_ id: String) -> Bool {

@@ -8,6 +8,10 @@ class StatusBarController {
     var settingsStore: SettingsStore?
     var allDevices: [BluetoothDevice] = []
 
+    private func displayName(_ device: BluetoothDevice) -> String {
+        settingsStore?.displayName(for: device) ?? device.name
+    }
+
     func update(devices: [BluetoothDevice]) {
         allDevices = devices
         guard let store = settingsStore else { return }
@@ -69,7 +73,8 @@ class StatusBarController {
             let isLow = device.batteryLevel <= threshold
             let color: NSColor = isLow ? .systemRed : .headerTextColor
 
-            if let symbolImage = NSImage(systemSymbolName: device.deviceType.sfSymbolName, accessibilityDescription: device.name) {
+            let devName = displayName(device)
+            if let symbolImage = NSImage(systemSymbolName: device.deviceType.sfSymbolName, accessibilityDescription: devName) {
                 var config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
                 if isLow {
                     config = config.applying(NSImage.SymbolConfiguration(paletteColors: [.systemRed]))
@@ -95,11 +100,12 @@ class StatusBarController {
         }
 
         button.attributedTitle = attributed
-        let tooltipLines = visibleDevices.map { device in
+        let tooltipLines = visibleDevices.map { [weak self] device in
+            let name = self?.displayName(device) ?? device.name
             if let compText = device.componentBatteryText {
-                return "\(device.name): \(compText)"
+                return "\(name): \(compText)"
             }
-            return "\(device.name): \(device.batteryLevel)%"
+            return "\(name): \(device.batteryLevel)%"
         }
         button.toolTip = tooltipLines.joined(separator: "\n")
         item.menu = buildSingleModeMenu(visibleDevices: visibleDevices, allDevices: allDevices)
@@ -156,8 +162,9 @@ class StatusBarController {
         let showPct = settingsStore?.showPercentage ?? true
         let isLow = device.batteryLevel <= threshold
         let color: NSColor = isLow ? .systemRed : .headerTextColor
+        let devName = displayName(device)
         let text = showPct ? " \(device.batteryLevel)%" : ""
-        let a11yDescription = "\(device.name) battery"
+        let a11yDescription = "\(devName) battery"
 
         let textAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular),
@@ -193,24 +200,30 @@ class StatusBarController {
 
         button.attributedTitle = attributed
         if let compText = device.componentBatteryText {
-            button.toolTip = "\(device.name): \(compText)"
+            button.toolTip = "\(devName): \(compText)"
         } else {
-            button.toolTip = "\(device.name): \(device.batteryLevel)%"
+            button.toolTip = "\(devName): \(device.batteryLevel)%"
         }
     }
 
     private func buildSeparateModeMenu(allDevices: [BluetoothDevice], infoDevice: BluetoothDevice) -> NSMenu {
         let menu = NSMenu()
 
+        let infoName = displayName(infoDevice)
         let infoTitle: String
         if let compText = infoDevice.componentBatteryText {
-            infoTitle = "\(infoDevice.name) — \(compText)"
+            infoTitle = "\(infoName) — \(compText)"
         } else {
-            infoTitle = "\(infoDevice.name) — \(infoDevice.batteryLevel)%"
+            infoTitle = "\(infoName) — \(infoDevice.batteryLevel)%"
         }
         let infoItem = NSMenuItem(title: infoTitle, action: nil, keyEquivalent: "")
         infoItem.isEnabled = false
         menu.addItem(infoItem)
+
+        let renameItem = NSMenuItem(title: "Rename...", action: #selector(AppDelegate.renameDevice(_:)), keyEquivalent: "")
+        renameItem.representedObject = infoDevice.id
+        menu.addItem(renameItem)
+
         menu.addItem(NSMenuItem.separator())
 
         appendDeviceToggles(to: menu, allDevices: allDevices)
@@ -229,12 +242,13 @@ class StatusBarController {
 
         let threshold = settingsStore?.lowBatteryThreshold ?? 10
         for device in visibleDevices.sorted(by: { $0.batteryLevel < $1.batteryLevel }) {
+            let devName = displayName(device)
             let icon = device.deviceType.sfSymbolName
             let batteryDisplay = device.componentBatteryText ?? "\(device.batteryLevel)%"
-            let title = "\(device.name)   \(batteryDisplay)"
+            let title = "\(devName)   \(batteryDisplay)"
             let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
             item.isEnabled = false
-            if let symbolImage = NSImage(systemSymbolName: icon, accessibilityDescription: device.name) {
+            if let symbolImage = NSImage(systemSymbolName: icon, accessibilityDescription: devName) {
                 let isLow = device.batteryLevel <= threshold
                 var config = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
                 if isLow {
@@ -259,7 +273,7 @@ class StatusBarController {
         menu.addItem(headerItem)
 
         for device in allDevices {
-            let title = "\(device.name)   \(device.batteryLevel)%"
+            let title = "\(displayName(device))   \(device.batteryLevel)%"
             let toggleItem = NSMenuItem(title: title, action: #selector(AppDelegate.toggleDeviceVisibility(_:)), keyEquivalent: "")
             toggleItem.representedObject = device.id
             toggleItem.state = (settingsStore?.isHidden(device.id) == true) ? .off : .on
