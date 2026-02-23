@@ -9,6 +9,8 @@ class BLEBatteryReader: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private var discoveredPeripherals: [CBPeripheral] = []
     private var peripheralBatteryLevels: [UUID: Int] = [:]
     private var peripheralNames: [UUID: String] = [:]
+    private var pendingRemovals: [UUID: DispatchWorkItem] = [:]
+    private let removalGracePeriod: TimeInterval = 15
     var onDevicesUpdated: (([BluetoothDevice]) -> Void)?
 
     override init() {
@@ -26,6 +28,8 @@ class BLEBatteryReader: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         guard centralManager.state == .poweredOn else { return }
         let connected = centralManager.retrieveConnectedPeripherals(withServices: [batteryServiceUUID])
         for peripheral in connected {
+            pendingRemovals[peripheral.identifier]?.cancel()
+            pendingRemovals.removeValue(forKey: peripheral.identifier)
             if !discoveredPeripherals.contains(where: { $0.identifier == peripheral.identifier }) {
                 discoveredPeripherals.append(peripheral)
                 peripheral.delegate = self
@@ -36,15 +40,26 @@ class BLEBatteryReader: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        pendingRemovals[peripheral.identifier]?.cancel()
+        pendingRemovals.removeValue(forKey: peripheral.identifier)
         peripheral.discoverServices([batteryServiceUUID])
     }
 
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
-        peripheralBatteryLevels.removeValue(forKey: peripheral.identifier)
-        peripheralNames.removeValue(forKey: peripheral.identifier)
         discoveredPeripherals.removeAll { $0.identifier == peripheral.identifier }
-        notifyDevicesUpdated()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+
+        let work = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            self.pendingRemovals.removeValue(forKey: peripheral.identifier)
+            self.peripheralBatteryLevels.removeValue(forKey: peripheral.identifier)
+            self.peripheralNames.removeValue(forKey: peripheral.identifier)
+            self.notifyDevicesUpdated()
+        }
+        pendingRemovals[peripheral.identifier]?.cancel()
+        pendingRemovals[peripheral.identifier] = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + removalGracePeriod, execute: work)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
             self?.scanForConnectedPeripherals()
         }
     }
