@@ -57,11 +57,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusBarController.update(devices: statusBarController.allDevices)
     }
 
-    @objc func toggleShowPercentage(_ sender: NSMenuItem) {
-        settingsStore.setShowPercentage(!(settingsStore.showPercentage))
-        statusBarController.update(devices: statusBarController.allDevices)
-    }
-
     @objc func setDisplayMode(_ sender: NSMenuItem) {
         guard let mode = sender.representedObject as? String else { return }
         settingsStore.setDisplayMode(mode)

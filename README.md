@@ -23,14 +23,13 @@ A lightweight macOS menu bar app that shows battery levels for connected Bluetoo
 
 - Individual status bar icons with battery percentage for each connected Bluetooth device
 - AirPods individual battery levels (Left, Right, Case)
-- Display modes: separate icons, combined icon, or compact combined (icons only)
+- Display modes: separate icons, combined icon, or percentages only
 - Custom device names — rename any device from the menu
 - Custom device order — reorder devices via move up/down
 - Estimated battery time remaining per device
 - Per-device visibility toggles — hide/show devices directly from the dropdown menu
 - Configurable low battery threshold (5/10/15/20/25%)
 - Low battery notifications via macOS native alerts
-- Icon-only mode (hide percentage text)
 - Configurable refresh interval (10s, 30s, 60s, 120s)
 - Manual refresh from the menu
 - Launch at Login support
