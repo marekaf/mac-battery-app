@@ -330,18 +330,28 @@ class StatusBarController {
 
     private func buildSeparateModeMenu(allDevices: [BluetoothDevice], infoDevice: BluetoothDevice) -> NSMenu {
         let menu = NSMenu()
+        let store = settingsStore
+        let threshold = store?.lowBatteryThreshold ?? 10
+        let visibleDevices = allDevices.filter { !(store?.isHidden($0.id) ?? false) }
 
-        let infoName = displayName(infoDevice)
-        let infoTitle: String
-        if let compText = infoDevice.componentBatteryText {
-            infoTitle = "\(infoName) — \(compText)"
-        } else {
-            infoTitle = "\(infoName) — \(infoDevice.batteryLevel)%"
+        for device in visibleDevices {
+            let devName = displayName(device)
+            let icon = deviceIcon(device)
+            let batteryDisplay = device.componentBatteryText ?? "\(device.batteryLevel)%"
+            let title = "\(devName) — \(batteryDisplay)"
+            let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            if let symbolImage = NSImage(systemSymbolName: icon, accessibilityDescription: devName) {
+                let isLow = device.batteryLevel <= threshold
+                var config = NSImage.SymbolConfiguration(pointSize: menuIconSize, weight: .medium)
+                if isLow {
+                    config = config.applying(NSImage.SymbolConfiguration(paletteColors: [.systemRed]))
+                }
+                item.image = symbolImage.withSymbolConfiguration(config) ?? symbolImage
+            }
+            menu.addItem(item)
+            appendTimeEstimate(to: menu, deviceID: device.id)
         }
-        let infoItem = NSMenuItem(title: infoTitle, action: nil, keyEquivalent: "")
-        infoItem.isEnabled = false
-        menu.addItem(infoItem)
-        appendTimeEstimate(to: menu, deviceID: infoDevice.id)
         menu.addItem(NSMenuItem.separator())
 
         appendDeviceToggles(to: menu, allDevices: allDevices)
