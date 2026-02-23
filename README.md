@@ -14,6 +14,10 @@ A lightweight macOS menu bar app that shows battery levels for connected Bluetoo
 
 > The app is not code-signed or notarized. macOS will block it on first launch —
 > right-click the app and select "Open" to bypass Gatekeeper.
+> If that doesn't work, remove the quarantine attribute first:
+> ```
+> xattr -cr /Applications/BatteryBar.app
+> ```
 
 ## Features
 
