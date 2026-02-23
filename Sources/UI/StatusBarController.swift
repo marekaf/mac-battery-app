@@ -287,7 +287,7 @@ class StatusBarController {
         menu.addItem(headerItem)
 
         for (index, device) in allDevices.enumerated() {
-            let title = "\(displayName(device))   \(device.batteryLevel)%"
+            let title = displayName(device)
             let deviceItem = NSMenuItem(title: title, action: nil, keyEquivalent: "")
             deviceItem.state = (settingsStore?.isHidden(device.id) == true) ? .off : .on
 
