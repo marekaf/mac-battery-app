@@ -79,7 +79,7 @@ func parseBluetoothOutput(text: String) -> [String: BluetoothDeviceInfo] {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
 
         let leadingSpaces = line.prefix(while: { $0 == " " }).count
-        if trimmed.hasSuffix(":") && leadingSpaces == 8 {
+        if trimmed.hasSuffix(":") && leadingSpaces >= 8 && leadingSpaces <= 12 {
             let name = String(trimmed.dropLast())
             if !name.isEmpty && name.count > 2 {
                 flushDevice(current, into: &map)
