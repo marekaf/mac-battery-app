@@ -6,6 +6,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var deviceManager: DeviceManager!
     private var settingsStore: SettingsStore!
     private var notificationManager: NotificationManager!
+    private var batteryHistoryStore: BatteryHistoryStore!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let store = SettingsStore()
@@ -15,9 +16,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusBarController = controller
         deviceManager = DeviceManager(refreshInterval: store.refreshInterval)
         notificationManager = NotificationManager()
+        batteryHistoryStore = BatteryHistoryStore()
+        controller.batteryHistoryStore = batteryHistoryStore
 
         deviceManager.onDevicesChanged = { [weak self] devices in
             guard let self = self else { return }
+            for device in devices {
+                self.batteryHistoryStore.record(deviceID: device.id, level: device.batteryLevel)
+            }
             self.statusBarController.update(devices: devices)
             self.notificationManager.checkAndNotify(
                 devices: devices, threshold: self.settingsStore.lowBatteryThreshold,

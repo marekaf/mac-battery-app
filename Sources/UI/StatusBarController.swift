@@ -6,6 +6,7 @@ class StatusBarController {
     private var anchorItem: NSStatusItem?
     private var singleItem: NSStatusItem?
     var settingsStore: SettingsStore?
+    var batteryHistoryStore: BatteryHistoryStore?
     var allDevices: [BluetoothDevice] = []
 
     private func displayName(_ device: BluetoothDevice) -> String {
@@ -238,6 +239,7 @@ class StatusBarController {
         let infoItem = NSMenuItem(title: infoTitle, action: nil, keyEquivalent: "")
         infoItem.isEnabled = false
         menu.addItem(infoItem)
+        appendGraphItem(to: menu, deviceID: infoDevice.id)
         menu.addItem(NSMenuItem.separator())
 
         appendDeviceToggles(to: menu, allDevices: allDevices)
@@ -271,6 +273,7 @@ class StatusBarController {
                 item.image = symbolImage.withSymbolConfiguration(config) ?? symbolImage
             }
             menu.addItem(item)
+            appendGraphItem(to: menu, deviceID: device.id)
         }
 
         menu.addItem(NSMenuItem.separator())
@@ -320,6 +323,17 @@ class StatusBarController {
             deviceItem.submenu = subMenu
             menu.addItem(deviceItem)
         }
+    }
+
+    private func appendGraphItem(to menu: NSMenu, deviceID: String) {
+        guard let readings = batteryHistoryStore?.readings(for: deviceID),
+              readings.count >= 2 else { return }
+        let graphView = BatteryGraphView()
+        graphView.readings = readings
+        graphView.frame = NSRect(origin: .zero, size: graphView.intrinsicContentSize)
+        let graphItem = NSMenuItem()
+        graphItem.view = graphView
+        menu.addItem(graphItem)
     }
 
     private func appendSettingsMenuItems(to menu: NSMenu) {
