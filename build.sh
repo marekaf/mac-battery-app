@@ -33,6 +33,7 @@ lipo -create "${MACOS_DIR}/${APP_NAME}_arm64" "${MACOS_DIR}/${APP_NAME}_x86_64" 
 rm "${MACOS_DIR}/${APP_NAME}_arm64" "${MACOS_DIR}/${APP_NAME}_x86_64"
 
 cp Info.plist "${CONTENTS_DIR}/Info.plist"
+cp Resources/AppIcon.icns "${RESOURCES_DIR}/AppIcon.icns"
 
 codesign --force --sign - --entitlements /dev/stdin "${BUNDLE_DIR}" <<ENTITLEMENTS
 <?xml version="1.0" encoding="UTF-8"?>
