@@ -8,6 +8,7 @@ class SettingsStore {
     private let displayModeKey = "displayMode"
     private let customNamesKey = "customDeviceNames"
     private let deviceOrderKey = "deviceOrder"
+    private let customIconsKey = "customDeviceIcons"
 
     private(set) var hiddenDeviceIDs: Set<String> {
         didSet {
@@ -51,6 +52,12 @@ class SettingsStore {
         }
     }
 
+    private(set) var customDeviceIcons: [String: String] {
+        didSet {
+            UserDefaults.standard.set(customDeviceIcons, forKey: customIconsKey)
+        }
+    }
+
     var isSingleMode: Bool {
         displayMode == "single" || displayMode == "compact"
     }
@@ -74,6 +81,7 @@ class SettingsStore {
         displayMode = UserDefaults.standard.string(forKey: displayModeKey) ?? "separate"
         customDeviceNames = (UserDefaults.standard.dictionary(forKey: customNamesKey) as? [String: String]) ?? [:]
         deviceOrder = UserDefaults.standard.stringArray(forKey: deviceOrderKey) ?? []
+        customDeviceIcons = (UserDefaults.standard.dictionary(forKey: customIconsKey) as? [String: String]) ?? [:]
     }
 
     func setLowBatteryThreshold(_ value: Int) {
@@ -102,6 +110,18 @@ class SettingsStore {
 
     func displayName(for device: BluetoothDevice) -> String {
         customDeviceNames[device.id] ?? device.name
+    }
+
+    func setCustomIcon(_ icon: String?, for deviceID: String) {
+        if let icon = icon, !icon.isEmpty {
+            customDeviceIcons[deviceID] = icon
+        } else {
+            customDeviceIcons.removeValue(forKey: deviceID)
+        }
+    }
+
+    func iconName(for device: BluetoothDevice) -> String {
+        customDeviceIcons[device.id] ?? device.deviceType.sfSymbolName
     }
 
     func setDeviceOrder(_ order: [String]) {
