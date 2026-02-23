@@ -8,13 +8,18 @@ struct BatteryReading: Codable {
 class BatteryHistoryStore {
     private let historyKey = "batteryHistory"
     private let ratesKey = "learnedDrainRates"
-    private var history: [String: [BatteryReading]] = [:]
-    private var learnedDrainRates: [String: Double] = [:]  // deviceID → hours per 1%
-    private let maxReadings = 2016
+    var history: [String: [BatteryReading]] = [:]
+    var learnedDrainRates: [String: Double] = [:]  // deviceID → hours per 1%
+    let maxReadings = 2016
 
     init() {
         load()
         loadRates()
+    }
+
+    init(history: [String: [BatteryReading]], learnedDrainRates: [String: Double] = [:]) {
+        self.history = history
+        self.learnedDrainRates = learnedDrainRates
     }
 
     func record(deviceID: String, level: Int) {
@@ -82,7 +87,7 @@ class BatteryHistoryStore {
         return "Insufficient data"
     }
 
-    private func formatTimeRemaining(_ hoursLeft: Double) -> String {
+    func formatTimeRemaining(_ hoursLeft: Double) -> String {
         if hoursLeft >= 24 {
             let days = Int(hoursLeft / 24)
             let hours = Int(hoursLeft) % 24

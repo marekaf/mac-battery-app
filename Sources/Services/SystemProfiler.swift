@@ -10,7 +10,6 @@ struct BluetoothDeviceInfo {
 }
 
 func buildBluetoothNameMap() -> [String: BluetoothDeviceInfo] {
-    var map: [String: BluetoothDeviceInfo] = [:]
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
     process.arguments = ["SPBluetoothDataType"]
@@ -23,16 +22,22 @@ func buildBluetoothNameMap() -> [String: BluetoothDeviceInfo] {
         process.waitUntilExit()
     } catch {
         NSLog("Failed to run system_profiler: %@", error.localizedDescription)
-        return map
+        return [:]
     }
 
     if process.terminationStatus != 0 {
         NSLog("system_profiler exited with status %d", process.terminationStatus)
-        return map
+        return [:]
     }
 
     let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    guard let output = String(data: data, encoding: .utf8) else { return map }
+    guard let output = String(data: data, encoding: .utf8) else { return [:] }
+
+    return parseBluetoothOutput(text: output)
+}
+
+func parseBluetoothOutput(text: String) -> [String: BluetoothDeviceInfo] {
+    var map: [String: BluetoothDeviceInfo] = [:]
 
     struct PendingDevice {
         var name: String
@@ -70,7 +75,7 @@ func buildBluetoothNameMap() -> [String: BluetoothDeviceInfo] {
         }
     }
 
-    for line in output.components(separatedBy: "\n") {
+    for line in text.components(separatedBy: "\n") {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
 
         let leadingSpaces = line.prefix(while: { $0 == " " }).count
@@ -110,7 +115,7 @@ func buildBluetoothNameMap() -> [String: BluetoothDeviceInfo] {
     return map
 }
 
-private func parseBatteryLevel(from line: String, prefix: String) -> Int? {
+func parseBatteryLevel(from line: String, prefix: String) -> Int? {
     let value = line.replacingOccurrences(of: prefix, with: "")
         .trimmingCharacters(in: .whitespaces)
         .replacingOccurrences(of: "%", with: "")
