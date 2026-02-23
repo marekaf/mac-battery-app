@@ -10,7 +10,7 @@ A lightweight macOS menu bar app that shows battery levels for connected Bluetoo
 2. Unzip and move `BatteryBar.app` to `/Applications`
 3. On first launch: right-click the app > Open (required for unsigned apps)
 
-**Requirements:** Apple Silicon Mac (M1/M2/M3+) running macOS 13.0 or later.
+**Requirements:** macOS 13.0 or later (Apple Silicon and Intel).
 
 > The app is not code-signed or notarized. macOS will block it on first launch —
 > right-click the app and select "Open" to bypass Gatekeeper.
@@ -18,8 +18,14 @@ A lightweight macOS menu bar app that shows battery levels for connected Bluetoo
 ## Features
 
 - Individual status bar icons with battery percentage for each connected Bluetooth device
+- AirPods individual battery levels (Left, Right, Case)
+- Display mode: separate icons per device or single lowest-battery icon
 - Per-device visibility toggles — hide/show devices directly from the dropdown menu
-- Low battery warning (icon turns red at 10% or below)
+- Configurable low battery threshold (5/10/15/20/25%)
+- Low battery notifications via macOS native alerts
+- Icon-only mode (hide percentage text)
+- Configurable refresh interval (10s, 30s, 60s, 120s)
+- Manual refresh from the menu
 - Launch at Login support
 - Reads from both IOKit (classic Bluetooth) and CoreBluetooth (BLE) devices
 
@@ -29,7 +35,7 @@ A lightweight macOS menu bar app that shows battery levels for connected Bluetoo
 ./build.sh
 ```
 
-Requires Xcode Command Line Tools. Targets macOS 13.0+ (arm64).
+Requires Xcode Command Line Tools. Builds a universal binary (arm64 + x86_64) targeting macOS 13.0+.
 
 ## Running
 
@@ -37,6 +43,3 @@ Requires Xcode Command Line Tools. Targets macOS 13.0+ (arm64).
 open BatteryBar.app
 ```
 
-## Nice-to-have
-
-- Settings window (refresh interval, low battery threshold, icon style, show/hide percentage text)
