@@ -52,7 +52,11 @@ class SettingsStore {
     }
 
     var isSingleMode: Bool {
-        displayMode == "single"
+        displayMode == "single" || displayMode == "compact"
+    }
+
+    var isCompactMode: Bool {
+        displayMode == "compact"
     }
 
     init() {

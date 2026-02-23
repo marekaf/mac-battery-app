@@ -85,7 +85,7 @@ class StatusBarController {
         guard let item = singleItem, let button = item.button else { return }
 
         let threshold = settingsStore?.lowBatteryThreshold ?? 10
-        let showPct = settingsStore?.showPercentage ?? true
+        let showPct = (settingsStore?.showPercentage ?? true) && !(settingsStore?.isCompactMode ?? false)
         let attributed = NSMutableAttributedString()
 
         for (index, device) in visibleDevices.enumerated() {
@@ -355,7 +355,7 @@ class StatusBarController {
         let displayModeItem = NSMenuItem(title: "Display Mode", action: nil, keyEquivalent: "")
         let displayModeMenu = NSMenu()
         let currentMode = settingsStore?.displayMode ?? "separate"
-        for (mode, label) in [("separate", "Separate Icons"), ("single", "Combined Icon")] {
+        for (mode, label) in [("separate", "Separate Icons"), ("single", "Combined Icon"), ("compact", "Compact Combined")] {
             let item = NSMenuItem(title: label, action: #selector(AppDelegate.setDisplayMode(_:)), keyEquivalent: "")
             item.representedObject = mode
             item.state = (mode == currentMode) ? .on : .off
