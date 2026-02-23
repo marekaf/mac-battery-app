@@ -4,6 +4,66 @@ import ServiceManagement
 private let statusBarFontSize: CGFloat = 12
 private let menuIconSize: CGFloat = 14
 private let baselineOffset: CGFloat = 1
+private class StackedStatusView: NSView {
+    private var iconName: String = "battery.100percent"
+    private var percentage: String = "100%"
+    private var iconColor: NSColor = .headerTextColor
+    private var textColor: NSColor = .headerTextColor
+    private let font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .medium)
+
+    override var intrinsicContentSize: NSSize {
+        let textSize = (percentage as NSString).size(withAttributes: [.font: font])
+        let iconConfig = NSImage.SymbolConfiguration(pointSize: 9, weight: .medium)
+        let iconWidth: CGFloat
+        if let img = NSImage(systemSymbolName: iconName, accessibilityDescription: nil)?
+            .withSymbolConfiguration(iconConfig) {
+            iconWidth = img.size.width
+        } else {
+            iconWidth = 12
+        }
+        let width = max(textSize.width, iconWidth) + 4
+        return NSSize(width: width, height: 22)
+    }
+
+    func update(icon: String, text: String, isLow: Bool) {
+        iconName = icon
+        percentage = text
+        let color: NSColor = isLow ? .systemRed : .headerTextColor
+        iconColor = color
+        textColor = color
+        invalidateIntrinsicContentSize()
+        needsDisplay = true
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let bounds = self.bounds
+        let halfHeight = bounds.height / 2
+
+        let iconConfig = NSImage.SymbolConfiguration(pointSize: 9, weight: .medium)
+        if let symbolImage = NSImage(systemSymbolName: iconName, accessibilityDescription: nil) {
+            var config = iconConfig
+            config = config.applying(NSImage.SymbolConfiguration(paletteColors: [iconColor]))
+            let configured = symbolImage.withSymbolConfiguration(config) ?? symbolImage
+            let imgSize = configured.size
+            let iconX = (bounds.width - imgSize.width) / 2
+            let iconY = halfHeight + (halfHeight - imgSize.height) / 2
+            configured.draw(in: NSRect(x: iconX, y: iconY, width: imgSize.width, height: imgSize.height))
+        }
+
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: textColor
+        ]
+        let textSize = (percentage as NSString).size(withAttributes: attrs)
+        let textX = (bounds.width - textSize.width) / 2
+        let textY = (halfHeight - textSize.height) / 2
+        (percentage as NSString).draw(at: NSPoint(x: textX, y: textY), withAttributes: attrs)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        super.mouseDown(with: event)
+    }
+}
 
 class StatusBarController {
     private var statusItems: [String: NSStatusItem] = [:]
@@ -79,6 +139,7 @@ class StatusBarController {
     private func updateSeparateMode(visibleDevices: [BluetoothDevice], allDevices: [BluetoothDevice]) {
         let visibleIDs = Set(visibleDevices.map { $0.id })
         let existingIDs = Set(statusItems.keys)
+        let stacked = settingsStore?.isStackedMode ?? false
 
         for id in existingIDs.subtracting(visibleIDs) {
             if let item = statusItems.removeValue(forKey: id) {
@@ -89,7 +150,12 @@ class StatusBarController {
         for device in visibleDevices {
             let item = statusItems[device.id] ?? createStatusItem()
             statusItems[device.id] = item
-            configureStatusItemAppearance(item, for: device)
+            if stacked {
+                configureStackedAppearance(item, for: device)
+            } else {
+                removeStackedView(from: item)
+                configureStatusItemAppearance(item, for: device)
+            }
             item.menu = buildSeparateModeMenu(allDevices: allDevices, infoDevice: device)
         }
     }
@@ -187,6 +253,45 @@ class StatusBarController {
             NSStatusBar.system.removeStatusItem(item)
             singleItem = nil
         }
+    }
+
+    private func configureStackedAppearance(_ item: NSStatusItem, for device: BluetoothDevice) {
+        guard let button = item.button else { return }
+
+        let threshold = settingsStore?.lowBatteryThreshold ?? 10
+        let isLow = device.batteryLevel <= threshold
+        let devName = displayName(device)
+
+        button.attributedTitle = NSAttributedString(string: "")
+        button.image = nil
+
+        let stackedView: StackedStatusView
+        if let existing = button.subviews.first(where: { $0 is StackedStatusView }) as? StackedStatusView {
+            stackedView = existing
+        } else {
+            stackedView = StackedStatusView()
+            stackedView.translatesAutoresizingMaskIntoConstraints = false
+            button.addSubview(stackedView)
+            NSLayoutConstraint.activate([
+                stackedView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+                stackedView.leadingAnchor.constraint(equalTo: button.leadingAnchor),
+                stackedView.trailingAnchor.constraint(equalTo: button.trailingAnchor),
+                stackedView.heightAnchor.constraint(equalToConstant: 22),
+            ])
+        }
+
+        stackedView.update(icon: deviceIcon(device), text: "\(device.batteryLevel)%", isLow: isLow)
+
+        if let compText = device.componentBatteryText {
+            button.toolTip = "\(devName): \(compText)"
+        } else {
+            button.toolTip = "\(devName): \(device.batteryLevel)%"
+        }
+    }
+
+    private func removeStackedView(from item: NSStatusItem) {
+        guard let button = item.button else { return }
+        button.subviews.filter { $0 is StackedStatusView }.forEach { $0.removeFromSuperview() }
     }
 
     private func configureStatusItemAppearance(_ item: NSStatusItem, for device: BluetoothDevice) {
@@ -394,7 +499,7 @@ class StatusBarController {
         let displayModeItem = NSMenuItem(title: "Display Mode", action: nil, keyEquivalent: "")
         let displayModeMenu = NSMenu()
         let currentMode = settingsStore?.displayMode ?? "separate"
-        for (mode, label) in [("separate", "Separate Icons"), ("single", "Combined Icon"), ("compact", "Percentages Only")] {
+        for (mode, label) in [("separate", "Separate Icons"), ("stacked", "Stacked"), ("single", "Combined Icon"), ("compact", "Percentages Only")] {
             let item = NSMenuItem(title: label, action: #selector(AppDelegate.setDisplayMode(_:)), keyEquivalent: "")
             item.representedObject = mode
             item.state = (mode == currentMode) ? .on : .off

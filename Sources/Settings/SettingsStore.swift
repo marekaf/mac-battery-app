@@ -66,6 +66,10 @@ class SettingsStore {
         displayMode == "compact"
     }
 
+    var isStackedMode: Bool {
+        displayMode == "stacked"
+    }
+
     init() {
         let stored = UserDefaults.standard.stringArray(forKey: hiddenKey) ?? []
         hiddenDeviceIDs = Set(stored)
@@ -96,7 +100,7 @@ class SettingsStore {
         showPercentage = value
     }
 
-    private static let validDisplayModes: Set<String> = ["separate", "single", "compact"]
+    private static let validDisplayModes: Set<String> = ["separate", "single", "compact", "stacked"]
 
     func setDisplayMode(_ value: String) {
         displayMode = Self.validDisplayModes.contains(value) ? value : "separate"
