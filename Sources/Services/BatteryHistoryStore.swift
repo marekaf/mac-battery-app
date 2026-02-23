@@ -36,8 +36,12 @@ class BatteryHistoryStore {
     func estimatedTimeRemaining(for deviceID: String) -> String? {
         let all = readings(for: deviceID)
         guard all.count >= 2 else { return nil }
-        let cutoff = Date().addingTimeInterval(-3600)
-        let recent = all.filter { $0.timestamp >= cutoff }
+        let shortCutoff = Date().addingTimeInterval(-3600)
+        var recent = all.filter { $0.timestamp >= shortCutoff }
+        if recent.count < 2 {
+            let longCutoff = Date().addingTimeInterval(-86400)
+            recent = all.filter { $0.timestamp >= longCutoff }
+        }
         guard recent.count >= 2,
               let first = recent.first, let last = recent.last else { return "Collecting data..." }
         let timeDelta = last.timestamp.timeIntervalSince(first.timestamp)
