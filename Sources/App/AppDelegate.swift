@@ -100,6 +100,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @objc func setDeviceIcon(_ sender: NSMenuItem) {
+        guard let info = sender.representedObject as? [String] else { return }
+        let deviceID = info[0]
+        let icon: String? = info.count > 1 ? info[1] : nil
+        settingsStore.setCustomIcon(icon, for: deviceID)
+        statusBarController.update(devices: statusBarController.allDevices)
+    }
+
     @objc func toggleLaunchAtLogin(_ sender: NSMenuItem) {
         do {
             if SMAppService.mainApp.status == .enabled {

@@ -13,6 +13,10 @@ class StatusBarController {
         settingsStore?.displayName(for: device) ?? device.name
     }
 
+    private func deviceIcon(_ device: BluetoothDevice) -> String {
+        settingsStore?.iconName(for: device) ?? device.deviceType.sfSymbolName
+    }
+
     private func sortByUserOrder(_ devices: [BluetoothDevice]) -> [BluetoothDevice] {
         guard let store = settingsStore else { return devices }
         let order = store.deviceOrder
@@ -95,7 +99,7 @@ class StatusBarController {
 
             if !isCompact {
                 let devName = displayName(device)
-                if let symbolImage = NSImage(systemSymbolName: device.deviceType.sfSymbolName, accessibilityDescription: devName) {
+                if let symbolImage = NSImage(systemSymbolName: deviceIcon(device), accessibilityDescription: devName) {
                     var config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
                     if isLow {
                         config = config.applying(NSImage.SymbolConfiguration(paletteColors: [.systemRed]))
@@ -195,7 +199,7 @@ class StatusBarController {
 
         if isLow {
             button.image?.isTemplate = false
-            if let symbolImage = NSImage(systemSymbolName: device.deviceType.sfSymbolName, accessibilityDescription: a11yDescription) {
+            if let symbolImage = NSImage(systemSymbolName: deviceIcon(device), accessibilityDescription: a11yDescription) {
                 let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
                     .applying(NSImage.SymbolConfiguration(paletteColors: [.systemRed]))
                 let configured = symbolImage.withSymbolConfiguration(config) ?? symbolImage
@@ -204,7 +208,7 @@ class StatusBarController {
                 attributed.append(NSAttributedString(attachment: attachment))
             }
         } else {
-            if let symbolImage = NSImage(systemSymbolName: device.deviceType.sfSymbolName, accessibilityDescription: a11yDescription) {
+            if let symbolImage = NSImage(systemSymbolName: deviceIcon(device), accessibilityDescription: a11yDescription) {
                 let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
                 let configured = symbolImage.withSymbolConfiguration(config) ?? symbolImage
                 let attachment = NSTextAttachment()
@@ -256,7 +260,7 @@ class StatusBarController {
         let threshold = settingsStore?.lowBatteryThreshold ?? 10
         for device in visibleDevices.sorted(by: { $0.batteryLevel < $1.batteryLevel }) {
             let devName = displayName(device)
-            let icon = device.deviceType.sfSymbolName
+            let icon = deviceIcon(device)
             let batteryDisplay = device.componentBatteryText ?? "\(device.batteryLevel)%"
             let title = "\(devName)   \(batteryDisplay)"
             let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
@@ -310,6 +314,42 @@ class StatusBarController {
                 moveDown.representedObject = device.id
                 subMenu.addItem(moveDown)
             }
+
+            subMenu.addItem(NSMenuItem.separator())
+
+            let iconItem = NSMenuItem(title: "Icon", action: nil, keyEquivalent: "")
+            let iconMenu = NSMenu()
+            let currentIcon = settingsStore?.customDeviceIcons[device.id]
+            let iconChoices: [(String, String?)] = [
+                ("Auto", nil),
+                ("Keyboard", "keyboard"),
+                ("Mouse", "computermouse"),
+                ("Trackpad", "rectangle.and.hand.point.up.left"),
+                ("Headphones", "headphones"),
+                ("Speaker", "speaker.wave.2.fill"),
+                ("Controller", "gamecontroller.fill"),
+                ("Watch", "applewatch"),
+                ("Phone", "iphone"),
+                ("Pencil", "pencil"),
+                ("Generic", "wave.3.right.circle"),
+            ]
+            for (label, sfName) in iconChoices {
+                let choice = NSMenuItem(title: label, action: #selector(AppDelegate.setDeviceIcon(_:)), keyEquivalent: "")
+                if let sfName = sfName {
+                    choice.representedObject = [device.id, sfName]
+                    choice.state = (currentIcon == sfName) ? .on : .off
+                    if let img = NSImage(systemSymbolName: sfName, accessibilityDescription: label) {
+                        let cfg = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+                        choice.image = img.withSymbolConfiguration(cfg) ?? img
+                    }
+                } else {
+                    choice.representedObject = [device.id]
+                    choice.state = (currentIcon == nil) ? .on : .off
+                }
+                iconMenu.addItem(choice)
+            }
+            iconItem.submenu = iconMenu
+            subMenu.addItem(iconItem)
 
             subMenu.addItem(NSMenuItem.separator())
 
