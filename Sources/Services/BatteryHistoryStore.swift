@@ -39,11 +39,11 @@ class BatteryHistoryStore {
         let cutoff = Date().addingTimeInterval(-3600)
         let recent = all.filter { $0.timestamp >= cutoff }
         guard recent.count >= 2,
-              let first = recent.first, let last = recent.last else { return nil }
+              let first = recent.first, let last = recent.last else { return "Collecting data..." }
         let timeDelta = last.timestamp.timeIntervalSince(first.timestamp)
-        guard timeDelta > 300 else { return nil }
+        guard timeDelta > 120 else { return "Collecting data..." }
         let levelDrop = Double(first.level - last.level)
-        guard levelDrop > 0 else { return "Charging or stable" }
+        guard levelDrop > 0 else { return "Battery stable" }
         let drainPerHour = levelDrop / (timeDelta / 3600.0)
         let hoursLeft = Double(last.level) / drainPerHour
         if hoursLeft < 1 {
