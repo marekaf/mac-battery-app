@@ -239,7 +239,7 @@ class StatusBarController {
         let infoItem = NSMenuItem(title: infoTitle, action: nil, keyEquivalent: "")
         infoItem.isEnabled = false
         menu.addItem(infoItem)
-        appendGraphItem(to: menu, deviceID: infoDevice.id)
+        appendTimeEstimate(to: menu, deviceID: infoDevice.id)
         menu.addItem(NSMenuItem.separator())
 
         appendDeviceToggles(to: menu, allDevices: allDevices)
@@ -273,7 +273,7 @@ class StatusBarController {
                 item.image = symbolImage.withSymbolConfiguration(config) ?? symbolImage
             }
             menu.addItem(item)
-            appendGraphItem(to: menu, deviceID: device.id)
+            appendTimeEstimate(to: menu, deviceID: device.id)
         }
 
         menu.addItem(NSMenuItem.separator())
@@ -325,15 +325,11 @@ class StatusBarController {
         }
     }
 
-    private func appendGraphItem(to menu: NSMenu, deviceID: String) {
-        guard let readings = batteryHistoryStore?.readings(for: deviceID),
-              readings.count >= 2 else { return }
-        let graphView = BatteryGraphView()
-        graphView.readings = readings
-        graphView.frame = NSRect(origin: .zero, size: graphView.intrinsicContentSize)
-        let graphItem = NSMenuItem()
-        graphItem.view = graphView
-        menu.addItem(graphItem)
+    private func appendTimeEstimate(to menu: NSMenu, deviceID: String) {
+        guard let estimate = batteryHistoryStore?.estimatedTimeRemaining(for: deviceID) else { return }
+        let item = NSMenuItem(title: estimate, action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        menu.addItem(item)
     }
 
     private func appendSettingsMenuItems(to menu: NSMenu) {
