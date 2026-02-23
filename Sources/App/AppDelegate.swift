@@ -19,7 +19,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         deviceManager.onDevicesChanged = { [weak self] devices in
             guard let self = self else { return }
             self.statusBarController.update(devices: devices)
-            self.notificationManager.checkAndNotify(devices: devices, threshold: self.settingsStore.lowBatteryThreshold)
+            self.notificationManager.checkAndNotify(
+                devices: devices, threshold: self.settingsStore.lowBatteryThreshold,
+                nameResolver: { self.settingsStore.displayName(for: $0) })
         }
 
         statusBarController.update(devices: deviceManager.devices)
@@ -58,6 +60,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let mode = sender.representedObject as? String else { return }
         settingsStore.setDisplayMode(mode)
         statusBarController.update(devices: statusBarController.allDevices)
+    }
+
+    @objc func renameDevice(_ sender: NSMenuItem) {
+        guard let deviceID = sender.representedObject as? String else { return }
+        let currentName = settingsStore.customDeviceNames[deviceID]
+            ?? statusBarController.allDevices.first(where: { $0.id == deviceID })?.name ?? ""
+
+        let alert = NSAlert()
+        alert.messageText = "Rename Device"
+        alert.informativeText = "Enter a new name (leave empty to reset):"
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Cancel")
+
+        let input = NSTextField(frame: NSRect(x: 0, y: 0, width: 250, height: 24))
+        input.stringValue = currentName
+        alert.accessoryView = input
+        alert.window.initialFirstResponder = input
+
+        NSApp.activate(ignoringOtherApps: true)
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            let newName = input.stringValue.trimmingCharacters(in: .whitespaces)
+            settingsStore.setCustomName(newName.isEmpty ? nil : newName, for: deviceID)
+            statusBarController.update(devices: statusBarController.allDevices)
+        }
     }
 
     @objc func toggleLaunchAtLogin(_ sender: NSMenuItem) {
