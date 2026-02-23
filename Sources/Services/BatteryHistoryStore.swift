@@ -51,7 +51,7 @@ class BatteryHistoryStore {
         let drainPerHour = levelDrop / (timeDelta / 3600.0)
         let hoursLeft = Double(last.level) / drainPerHour
         if hoursLeft < 1 {
-            let mins = Int(hoursLeft * 60)
+            let mins = max(1, Int(hoursLeft * 60))
             return "~\(mins)m remaining"
         }
         let hours = Int(hoursLeft)

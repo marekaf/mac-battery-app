@@ -73,15 +73,8 @@ func buildBluetoothNameMap() -> [String: BluetoothDeviceInfo] {
     for line in output.components(separatedBy: "\n") {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
 
-        if trimmed.hasSuffix(":") && !trimmed.hasPrefix("Address:") && !trimmed.hasPrefix("Bluetooth") &&
-           !trimmed.hasPrefix("Connected:") && !trimmed.hasPrefix("Not Connected:") &&
-           !trimmed.hasPrefix("Services:") && !trimmed.hasPrefix("Vendor ID:") &&
-           !trimmed.hasPrefix("Product ID:") && !trimmed.hasPrefix("Firmware Version:") &&
-           !trimmed.hasPrefix("Battery Level:") && !trimmed.hasPrefix("Paired:") &&
-           !trimmed.hasPrefix("Favourite:") && !trimmed.hasPrefix("Major Type:") &&
-           !trimmed.hasPrefix("Minor Type:") && !trimmed.hasPrefix("Transport:") &&
-           !trimmed.hasPrefix("Left Battery Level:") && !trimmed.hasPrefix("Right Battery Level:") &&
-           !trimmed.hasPrefix("Case Battery Level:") {
+        let leadingSpaces = line.prefix(while: { $0 == " " }).count
+        if trimmed.hasSuffix(":") && leadingSpaces == 8 {
             let name = String(trimmed.dropLast())
             if !name.isEmpty && name.count > 2 {
                 flushDevice(current, into: &map)
