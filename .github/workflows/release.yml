@@ -33,3 +33,14 @@ jobs:
         with:
           files: BatteryBar.zip
           generate_release_notes: true
+
+      - name: Update Homebrew tap
+        if: env.TAP_UPDATE_TOKEN != ''
+        env:
+          TAP_UPDATE_TOKEN: ${{ secrets.TAP_UPDATE_TOKEN }}
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: token $TAP_UPDATE_TOKEN" \
+            https://api.github.com/repos/marekaf/homebrew-tap/dispatches \
+            -d "{\"event_type\":\"release-published\",\"client_payload\":{\"tag\":\"$GITHUB_REF_NAME\"}}"
