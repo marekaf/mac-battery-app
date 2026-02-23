@@ -47,7 +47,7 @@ class BatteryHistoryStore {
         let timeDelta = last.timestamp.timeIntervalSince(first.timestamp)
         guard timeDelta > 120 else { return "Collecting data..." }
         let levelDrop = Double(first.level - last.level)
-        guard levelDrop > 0 else { return "Battery stable" }
+        guard levelDrop > 0 else { return nil }
         let drainPerHour = levelDrop / (timeDelta / 3600.0)
         let hoursLeft = Double(last.level) / drainPerHour
         if hoursLeft < 1 {
