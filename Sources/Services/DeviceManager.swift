@@ -12,6 +12,7 @@ class DeviceManager {
 
     deinit {
         timer?.invalidate()
+        bleReader.cleanup()
         bleReader.onDevicesUpdated = nil
     }
 
@@ -39,6 +40,7 @@ class DeviceManager {
         timer = Timer.scheduledTimer(withTimeInterval: refreshInterval, repeats: true) { [weak self] _ in
             self?.refresh()
         }
+        RunLoop.current.add(timer!, forMode: .common)
     }
 
     func refresh() {

@@ -55,7 +55,6 @@ class BLEBatteryReader: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             self.peripheralNames.removeValue(forKey: peripheral.identifier)
             self.notifyDevicesUpdated()
         }
-        pendingRemovals[peripheral.identifier]?.cancel()
         pendingRemovals[peripheral.identifier] = work
         DispatchQueue.main.asyncAfter(deadline: .now() + removalGracePeriod, execute: work)
 
@@ -114,5 +113,16 @@ class BLEBatteryReader: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                 deviceType: detectDeviceType(from: name)
             )
         }
+    }
+
+    func cleanup() {
+        for peripheral in discoveredPeripherals {
+            centralManager.cancelPeripheralConnection(peripheral)
+        }
+        discoveredPeripherals.removeAll()
+        peripheralBatteryLevels.removeAll()
+        peripheralNames.removeAll()
+        pendingRemovals.values.forEach { $0.cancel() }
+        pendingRemovals.removeAll()
     }
 }

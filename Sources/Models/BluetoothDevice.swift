@@ -1,6 +1,6 @@
 import Foundation
 
-enum DeviceType {
+enum DeviceType: Equatable {
     case keyboard, mouse, trackpad, headphones, unknown
 
     var sfSymbolName: String {
@@ -36,6 +36,7 @@ struct BluetoothDevice: Identifiable, Equatable {
 
     static func == (lhs: BluetoothDevice, rhs: BluetoothDevice) -> Bool {
         lhs.id == rhs.id && lhs.name == rhs.name && lhs.batteryLevel == rhs.batteryLevel
+            && lhs.deviceType == rhs.deviceType
             && lhs.leftBattery == rhs.leftBattery && lhs.rightBattery == rhs.rightBattery
             && lhs.caseBattery == rhs.caseBattery
     }

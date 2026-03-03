@@ -10,6 +10,9 @@ class SettingsStore {
     private let deviceOrderKey = "deviceOrder"
     private let customIconsKey = "customDeviceIcons"
 
+    private static let defaultLowBatteryThreshold = 10
+    private static let defaultRefreshInterval = 30
+
     private(set) var hiddenDeviceIDs: Set<String> {
         didSet {
             UserDefaults.standard.set(Array(hiddenDeviceIDs), forKey: hiddenKey)
@@ -74,9 +77,9 @@ class SettingsStore {
         let stored = UserDefaults.standard.stringArray(forKey: hiddenKey) ?? []
         hiddenDeviceIDs = Set(stored)
         let savedThreshold = UserDefaults.standard.integer(forKey: thresholdKey)
-        lowBatteryThreshold = savedThreshold > 0 ? savedThreshold : 10
+        lowBatteryThreshold = savedThreshold > 0 ? savedThreshold : Self.defaultLowBatteryThreshold
         let savedInterval = UserDefaults.standard.integer(forKey: refreshIntervalKey)
-        refreshInterval = savedInterval > 0 ? savedInterval : 30
+        refreshInterval = savedInterval > 0 ? savedInterval : Self.defaultRefreshInterval
         if UserDefaults.standard.object(forKey: showPercentageKey) != nil {
             showPercentage = UserDefaults.standard.bool(forKey: showPercentageKey)
         } else {
