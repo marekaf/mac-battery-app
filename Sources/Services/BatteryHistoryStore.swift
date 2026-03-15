@@ -36,7 +36,8 @@ class BatteryHistoryStore {
         history[deviceID] = readings
         save()
 
-        if let first = readings.first, let last = readings.last {
+        let drainSegment = currentDrainSegment(readings)
+        if let first = drainSegment.first, let last = drainSegment.last {
             let timeDelta = last.timestamp.timeIntervalSince(first.timestamp)
             let levelDrop = Double(first.level - last.level)
             if timeDelta > 120 && levelDrop > 0 {
@@ -59,8 +60,9 @@ class BatteryHistoryStore {
             return formatTimeRemaining(hoursLeft)
         }
 
-        guard all.count >= 2,
-              let firstReading = all.first, let lastReading = all.last else { return nil }
+        let drain = currentDrainSegment(all)
+        guard drain.count >= 2,
+              let firstReading = drain.first, let lastReading = drain.last else { return nil }
 
         let totalTime = lastReading.timestamp.timeIntervalSince(firstReading.timestamp)
         guard totalTime > 120 else { return "Collecting data..." }
@@ -69,9 +71,9 @@ class BatteryHistoryStore {
         for cutoff in cutoffs {
             let subset: [BatteryReading]
             if let cutoff = cutoff {
-                subset = all.filter { $0.timestamp >= Date().addingTimeInterval(cutoff) }
+                subset = drain.filter { $0.timestamp >= Date().addingTimeInterval(cutoff) }
             } else {
-                subset = all
+                subset = drain
             }
             guard subset.count >= 2,
                   let first = subset.first, let last = subset.last else { continue }
@@ -85,6 +87,18 @@ class BatteryHistoryStore {
         }
 
         return "Insufficient data"
+    }
+
+    func currentDrainSegment(_ readings: [BatteryReading]) -> [BatteryReading] {
+        guard readings.count >= 2 else { return readings }
+        var peakIndex = 0
+        for i in stride(from: readings.count - 1, through: 1, by: -1) {
+            if readings[i].level > readings[i - 1].level {
+                peakIndex = i
+                break
+            }
+        }
+        return Array(readings[peakIndex...])
     }
 
     func formatTimeRemaining(_ hoursLeft: Double) -> String {
