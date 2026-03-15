@@ -50,4 +50,53 @@ func testBatteryHistory() {
     // estimatedTimeRemaining with single reading (no rate)
     let singleStore = BatteryHistoryStore(history: ["d4": [BatteryReading(timestamp: now, level: 80)]])
     assertNil(singleStore.estimatedTimeRemaining(for: "d4"), "nil with single reading")
+
+    // currentDrainSegment: simple drain
+    let simpleDrain = [
+        BatteryReading(timestamp: now.addingTimeInterval(-300), level: 90),
+        BatteryReading(timestamp: now.addingTimeInterval(-200), level: 88),
+        BatteryReading(timestamp: now, level: 85),
+    ]
+    let seg1 = BatteryHistoryStore(history: [:]).currentDrainSegment(simpleDrain)
+    assertEq(seg1.count, 3, "simple drain returns all readings")
+    assertEq(seg1.first?.level, 90, "simple drain starts at 90")
+
+    // currentDrainSegment: charge then drain
+    let chargeThenDrain = [
+        BatteryReading(timestamp: now.addingTimeInterval(-500), level: 60),
+        BatteryReading(timestamp: now.addingTimeInterval(-400), level: 70),
+        BatteryReading(timestamp: now.addingTimeInterval(-300), level: 95),
+        BatteryReading(timestamp: now.addingTimeInterval(-200), level: 90),
+        BatteryReading(timestamp: now, level: 85),
+    ]
+    let seg2 = BatteryHistoryStore(history: [:]).currentDrainSegment(chargeThenDrain)
+    assertEq(seg2.count, 3, "charge+drain returns drain segment only")
+    assertEq(seg2.first?.level, 95, "drain segment starts at peak after charge")
+
+    // currentDrainSegment: empty and single
+    let seg3 = BatteryHistoryStore(history: [:]).currentDrainSegment([])
+    assertEq(seg3.count, 0, "empty returns empty")
+    let seg4 = BatteryHistoryStore(history: [:]).currentDrainSegment([BatteryReading(timestamp: now, level: 50)])
+    assertEq(seg4.count, 1, "single returns single")
+
+    // estimatedTimeRemaining after charge cycle (the mouse bug)
+    let chargeHistory = [
+        BatteryReading(timestamp: now.addingTimeInterval(-7200), level: 60),
+        BatteryReading(timestamp: now.addingTimeInterval(-3600), level: 95),
+        BatteryReading(timestamp: now.addingTimeInterval(-1800), level: 90),
+        BatteryReading(timestamp: now, level: 85),
+    ]
+    let chargeStore = BatteryHistoryStore(history: ["mouse": chargeHistory])
+    let chargeEstimate = chargeStore.estimatedTimeRemaining(for: "mouse")
+    assertNotNil(chargeEstimate, "estimate works after charge cycle")
+    assert(chargeEstimate != "Insufficient data", "not insufficient data after charge cycle: \(chargeEstimate ?? "nil")")
+
+    // record() learns drain rate after charge cycle
+    let learnStore = BatteryHistoryStore(history: ["m1": [
+        BatteryReading(timestamp: now.addingTimeInterval(-7200), level: 60),
+        BatteryReading(timestamp: now.addingTimeInterval(-3600), level: 95),
+        BatteryReading(timestamp: now.addingTimeInterval(-1800), level: 90),
+    ]])
+    learnStore.record(deviceID: "m1", level: 85)
+    assertNotNil(learnStore.learnedDrainRates["m1"], "learns drain rate after charge cycle")
 }
