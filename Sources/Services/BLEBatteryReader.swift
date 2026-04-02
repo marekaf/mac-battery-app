@@ -35,6 +35,10 @@ class BLEBatteryReader: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                 peripheral.delegate = self
                 peripheralNames[peripheral.identifier] = sanitizeDeviceName(peripheral.name ?? "BLE Device")
                 centralManager.connect(peripheral, options: nil)
+            } else {
+                // Re-read battery level for already-connected peripherals
+                // since some devices don't send BLE notifications reliably
+                rereadBatteryLevel(for: peripheral)
             }
         }
     }
@@ -88,6 +92,16 @@ class BLEBatteryReader: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             peripheralNames[peripheral.identifier] = sanitizeDeviceName(name)
         }
         notifyDevicesUpdated()
+    }
+
+    private func rereadBatteryLevel(for peripheral: CBPeripheral) {
+        guard let services = peripheral.services else { return }
+        for service in services where service.uuid == batteryServiceUUID {
+            guard let chars = service.characteristics else { continue }
+            for char in chars where char.uuid == batteryLevelCharUUID {
+                peripheral.readValue(for: char)
+            }
+        }
     }
 
     private func notifyDevicesUpdated() {
